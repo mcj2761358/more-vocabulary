@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>右键菜单功能测试 - 多多记单词</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .highlight {
+            background-color: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .instruction {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .word-example {
+            font-weight: bold;
+            color: #1976d2;
+            cursor: pointer;
+        }
+        .word-example:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 右键菜单功能测试</h1>
+    
+    <div class="instruction">
+        <h3>📋 测试说明</h3>
+        <p><strong>如何测试右键菜单功能：</strong></p>
+        <ol>
+            <li>选中下面任意一个英文单词</li>
+            <li>右键点击选中的文本</li>
+            <li>在右键菜单中找到"多多记单词"选项</li>
+            <li>点击"多多记单词"，应该会弹出翻译窗口</li>
+        </ol>
+        <p><strong>注意：</strong>确保已经安装并启用了"多多记单词"浏览器扩展。</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🎯 基础单词测试</h3>
+        <p>请选中并右键点击以下单词：</p>
+        <ul>
+            <li><span class="word-example">hello</span> - 简单问候语</li>
+            <li><span class="word-example">world</span> - 世界</li>
+            <li><span class="word-example">computer</span> - 计算机</li>
+            <li><span class="word-example">language</span> - 语言</li>
+            <li><span class="word-example">beautiful</span> - 美丽的</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>📚 复杂单词测试</h3>
+        <p>测试一些更复杂的单词：</p>
+        <ul>
+            <li><span class="word-example">extraordinary</span> - 非凡的</li>
+            <li><span class="word-example">sophisticated</span> - 复杂的</li>
+            <li><span class="word-example">implementation</span> - 实现</li>
+            <li><span class="word-example">responsibility</span> - 责任</li>
+            <li><span class="word-example">understanding</span> - 理解</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>📖 文章段落测试</h3>
+        <p>在以下段落中选中任意单词进行测试：</p>
+        <p>
+            The <span class="word-example">development</span> of modern <span class="word-example">technology</span> has 
+            <span class="word-example">revolutionized</span> the way we <span class="word-example">communicate</span> and 
+            <span class="word-example">interact</span> with each other. <span class="word-example">Artificial</span> 
+            <span class="word-example">intelligence</span> and <span class="word-example">machine</span> 
+            <span class="word-example">learning</span> are becoming increasingly <span class="word-example">important</span> 
+            in our daily lives, <span class="word-example">transforming</span> everything from 
+            <span class="word-example">education</span> to <span class="word-example">healthcare</span>.
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 功能验证清单</h3>
+        <p>请确认以下功能是否正常工作：</p>
+        <ul>
+            <li>✅ 选中单词后右键菜单出现"多多记单词"选项</li>
+            <li>✅ 点击"多多记单词"后弹出翻译窗口</li>
+            <li>✅ 翻译窗口显示单词的翻译、音标和发音</li>
+            <li>✅ 可以收藏/取消收藏单词</li>
+            <li>✅ 可以播放单词发音（美式/英式）</li>
+            <li>✅ 翻译窗口可以正常关闭</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 高级测试</h3>
+        <p>测试一些特殊情况：</p>
+        <ul>
+            <li>选中包含标点符号的文本：<span class="word-example">hello,</span> <span class="word-example">world!</span></li>
+            <li>选中大写单词：<span class="word-example">COMPUTER</span> <span class="word-example">SCIENCE</span></li>
+            <li>选中混合大小写：<span class="word-example">JavaScript</span> <span class="word-example">HTML</span></li>
+        </ul>
+    </div>
+
+    <script>
+        // 添加一些交互效果
+        document.querySelectorAll('.word-example').forEach(word => {
+            word.addEventListener('click', function() {
+                // 自动选中单词
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // 提示用户右键
+                this.style.backgroundColor = '#ffeb3b';
+                setTimeout(() => {
+                    this.style.backgroundColor = '';
+                }, 1000);
+            });
+        });
+
+        // 页面加载完成提示
+        window.addEventListener('load', function() {
+            console.log('右键菜单测试页面已加载');
+            console.log('请选中单词并右键点击测试翻译功能');
+        });
+    </script>
+</body>
+</html> 

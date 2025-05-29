@@ -1547,6 +1547,36 @@ function setupMessageListener() {
       
       console.log('content script已同步删除单词:', wordLower);
       sendResponse({ success: true });
+    } else if (message.action === 'translateSelectedWord') {
+      // 处理右键菜单翻译请求
+      const word = message.word;
+      console.log('收到右键菜单翻译请求:', word);
+      
+      if (word && isEnglishWord(word)) {
+        // 获取当前选中文本的位置
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          
+          // 显示翻译
+          showTranslation(word, rect);
+          sendResponse({ success: true });
+        } else {
+          // 如果没有选中文本，在页面中心显示翻译
+          const rect = {
+            left: window.innerWidth / 2 - 200,
+            top: window.innerHeight / 2 - 100,
+            width: 0,
+            height: 0
+          };
+          showTranslation(word, rect);
+          sendResponse({ success: true });
+        }
+      } else {
+        console.log('无效的单词:', word);
+        sendResponse({ success: false, error: '无效的单词' });
+      }
     }
   });
 }
