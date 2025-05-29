@@ -206,6 +206,87 @@
       margin-bottom: 10px;
       line-height: 1.4;
     }
+
+    /* 高亮颜色设置样式 */
+    .highlight-section {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .highlight-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .color-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .color-option {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .color-option.active {
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+
+    .color-option.active::after {
+      content: '✓';
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .custom-color-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .custom-color-input {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .custom-color-input:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .custom-color-label {
+      font-size: 12px;
+      color: #6c757d;
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -265,6 +346,27 @@
         • 每10个单词自动创建备份点<br>
         • 支持手动导出/导入JSON文件<br>
         • 版本升级时自动迁移数据
+      </div>
+    </div>
+
+    <div class="highlight-section">
+      <div class="highlight-title">
+        <span>🌟</span>
+        <span>高亮颜色设置</span>
+      </div>
+      <div class="color-options">
+        <div class="color-option active" data-color="#ffeb3b" style="background-color: #ffeb3b;"></div>
+        <div class="color-option" data-color="#4caf50" style="background-color: #4caf50;"></div>
+        <div class="color-option" data-color="#2196f3" style="background-color: #2196f3;"></div>
+        <div class="color-option" data-color="#ff9800" style="background-color: #ff9800;"></div>
+        <div class="color-option" data-color="#e91e63" style="background-color: #e91e63;"></div>
+        <div class="color-option" data-color="#9c27b0" style="background-color: #9c27b0;"></div>
+        <div class="color-option" data-color="#00bcd4" style="background-color: #00bcd4;"></div>
+        <div class="color-option" data-color="#8bc34a" style="background-color: #8bc34a;"></div>
+      </div>
+      <div class="custom-color-section">
+        <input type="color" id="customColor" class="custom-color-input" value="#ffeb3b">
+        <label for="customColor" class="custom-color-label">自定义颜色</label>
       </div>
     </div>
   </div>

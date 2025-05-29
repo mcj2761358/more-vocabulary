@@ -1,19 +1,27 @@
 // 弹出页面脚本
 let savedWords = [];
+let savedWordsData = new Map(); // 存储单词详细信息
+let currentHighlightColor = '#ffeb3b'; // 默认高亮颜色
 
 // 存储键名
 const STORAGE_KEYS = {
   SAVED_WORDS: 'savedWords',
+  SAVED_WORDS_DATA: 'savedWordsData', // 新增
   DATA_VERSION: 'dataVersion',
   BACKUP_DATA: 'backupData',
-  LAST_BACKUP: 'lastBackup'
+  LAST_BACKUP: 'lastBackup',
+  HIGHLIGHT_COLOR: 'highlightColor',
+  TRANSLATION_CACHE: 'translationCache'
 };
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSavedWords();
+  await loadSavedWordsData();
+  await loadHighlightColor();
   updateUI();
   setupEventListeners();
+  setupColorSettings();
 });
 
 // 加载已保存的单词
@@ -25,6 +33,38 @@ async function loadSavedWords() {
   } catch (error) {
     console.error('加载保存的单词失败:', error);
     savedWords = [];
+  }
+}
+
+// 加载单词详细数据
+async function loadSavedWordsData() {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.SAVED_WORDS_DATA]);
+    const rawData = result[STORAGE_KEYS.SAVED_WORDS_DATA] || [];
+    
+    // 如果是数组格式，转换为Map
+    if (Array.isArray(rawData)) {
+      savedWordsData = new Map(rawData);
+    } else {
+      savedWordsData = new Map();
+    }
+    
+    console.log('弹出页面加载单词详细数据:', savedWordsData.size, '个');
+  } catch (error) {
+    console.error('加载单词详细数据失败:', error);
+    savedWordsData = new Map();
+  }
+}
+
+// 加载高亮颜色
+async function loadHighlightColor() {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.HIGHLIGHT_COLOR]);
+    currentHighlightColor = result[STORAGE_KEYS.HIGHLIGHT_COLOR] || '#ffeb3b';
+    console.log('弹出页面加载高亮颜色:', currentHighlightColor);
+  } catch (error) {
+    console.error('加载高亮颜色失败:', error);
+    currentHighlightColor = '#ffeb3b';
   }
 }
 
@@ -42,8 +82,30 @@ function updateStats() {
   
   totalWordsElement.textContent = savedWords.length;
   
-  // 简化版本：今日新增设为0，实际应用中可以记录时间戳
-  todayWordsElement.textContent = '0';
+  // 计算今日新增单词数量
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const todayEnd = todayStart + 24 * 60 * 60 * 1000; // 今天结束时间
+  
+  let todayCount = 0;
+  
+  // 如果savedWordsData是Map类型
+  if (savedWordsData instanceof Map) {
+    for (const [word, data] of savedWordsData) {
+      if (data.addedTime >= todayStart && data.addedTime < todayEnd) {
+        todayCount++;
+      }
+    }
+  } else if (Array.isArray(savedWordsData)) {
+    // 如果是数组格式（从存储中加载的格式）
+    savedWordsData.forEach(([word, data]) => {
+      if (data.addedTime >= todayStart && data.addedTime < todayEnd) {
+        todayCount++;
+      }
+    });
+  }
+  
+  todayWordsElement.textContent = todayCount.toString();
 }
 
 // 更新单词列表
@@ -137,9 +199,20 @@ async function clearAllWords() {
 // 导出数据
 async function exportData() {
   try {
+    // 获取所有数据，包括翻译缓存和单词详细数据
+    const allData = await chrome.storage.local.get([
+      STORAGE_KEYS.SAVED_WORDS,
+      STORAGE_KEYS.SAVED_WORDS_DATA,
+      STORAGE_KEYS.TRANSLATION_CACHE,
+      STORAGE_KEYS.HIGHLIGHT_COLOR
+    ]);
+    
     const data = {
       words: savedWords,
-      version: '1.1.0',
+      wordsData: allData[STORAGE_KEYS.SAVED_WORDS_DATA] || [], // 单词详细数据
+      translationCache: allData[STORAGE_KEYS.TRANSLATION_CACHE] || [],
+      highlightColor: allData[STORAGE_KEYS.HIGHLIGHT_COLOR] || '#ffeb3b',
+      version: '1.5.1',
       exportTime: new Date().toISOString(),
       count: savedWords.length,
       appName: '多多记单词'
@@ -157,7 +230,7 @@ async function exportData() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    console.log('数据导出成功:', savedWords.length, '个单词');
+    console.log('数据导出成功:', savedWords.length, '个单词，', (allData[STORAGE_KEYS.TRANSLATION_CACHE] || []).length, '个翻译缓存');
     
     // 显示成功提示
     showMessage('数据导出成功！', 'success');
@@ -184,15 +257,38 @@ async function handleFileImport(event) {
     const importedWords = data.words.filter(word => typeof word === 'string');
     const mergedWords = [...new Set([...savedWords, ...importedWords])];
     
-    await chrome.storage.local.set({ 
-      [STORAGE_KEYS.SAVED_WORDS]: mergedWords 
-    });
+    // 准备要保存的数据
+    const dataToSave = {
+      [STORAGE_KEYS.SAVED_WORDS]: mergedWords
+    };
+    
+    // 导入单词详细数据
+    if (data.wordsData && Array.isArray(data.wordsData)) {
+      dataToSave[STORAGE_KEYS.SAVED_WORDS_DATA] = data.wordsData;
+      // 更新本地Map
+      savedWordsData = new Map(data.wordsData);
+    }
+    
+    // 导入翻译缓存
+    if (data.translationCache && Array.isArray(data.translationCache)) {
+      dataToSave[STORAGE_KEYS.TRANSLATION_CACHE] = data.translationCache;
+    }
+    
+    // 导入高亮颜色
+    if (data.highlightColor) {
+      dataToSave[STORAGE_KEYS.HIGHLIGHT_COLOR] = data.highlightColor;
+      currentHighlightColor = data.highlightColor;
+    }
+    
+    await chrome.storage.local.set(dataToSave);
     
     savedWords = mergedWords;
     updateUI();
+    updateColorSelection(); // 更新颜色选择状态
     
-    const importedCount = mergedWords.length - savedWords.length + importedWords.length;
-    console.log('数据导入成功:', importedCount, '个新单词');
+    const importedCount = importedWords.length;
+    const cacheCount = data.translationCache ? data.translationCache.length : 0;
+    console.log('数据导入成功:', importedCount, '个新单词，', cacheCount, '个翻译缓存');
     
     showMessage(`数据导入成功！新增 ${importedCount} 个单词`, 'success');
   } catch (error) {
@@ -207,32 +303,123 @@ async function handleFileImport(event) {
 // 显示消息提示
 function showMessage(message, type = 'info') {
   // 创建消息元素
-  const messageEl = document.createElement('div');
-  messageEl.className = `message message-${type}`;
-  messageEl.textContent = message;
-  messageEl.style.cssText = `
+  const messageElement = document.createElement('div');
+  messageElement.className = `message message-${type}`;
+  messageElement.textContent = message;
+  
+  // 添加样式
+  messageElement.style.cssText = `
     position: fixed;
     top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 20px;
+    right: 20px;
+    padding: 12px 20px;
     border-radius: 6px;
     color: white;
-    font-size: 14px;
+    font-weight: 500;
     z-index: 10000;
-    animation: slideDown 0.3s ease;
-    background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+    animation: slideIn 0.3s ease;
   `;
   
-  document.body.appendChild(messageEl);
+  // 根据类型设置背景色
+  switch (type) {
+    case 'success':
+      messageElement.style.backgroundColor = '#28a745';
+      break;
+    case 'error':
+      messageElement.style.backgroundColor = '#dc3545';
+      break;
+    default:
+      messageElement.style.backgroundColor = '#17a2b8';
+  }
+  
+  // 添加到页面
+  document.body.appendChild(messageElement);
   
   // 3秒后自动移除
   setTimeout(() => {
-    if (messageEl.parentNode) {
-      messageEl.remove();
+    if (messageElement.parentNode) {
+      messageElement.remove();
     }
   }, 3000);
 }
 
 // 将deleteWord函数暴露到全局作用域
-window.deleteWord = deleteWord; 
+window.deleteWord = deleteWord;
+
+// 设置颜色选择功能
+function setupColorSettings() {
+  const colorOptions = document.querySelectorAll('.color-option');
+  const customColorInput = document.getElementById('customColor');
+  
+  // 初始化颜色选择状态
+  updateColorSelection();
+  
+  // 预设颜色选择事件
+  colorOptions.forEach(option => {
+    option.addEventListener('click', async () => {
+      const color = option.dataset.color;
+      await setHighlightColor(color);
+      updateColorSelection();
+    });
+  });
+  
+  // 自定义颜色选择事件
+  customColorInput.addEventListener('change', async (e) => {
+    const color = e.target.value;
+    await setHighlightColor(color);
+    updateColorSelection();
+  });
+}
+
+// 设置高亮颜色
+async function setHighlightColor(color) {
+  try {
+    currentHighlightColor = color;
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.HIGHLIGHT_COLOR]: color
+    });
+    
+    // 通知内容脚本更新颜色
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: 'updateHighlightColor',
+        color: color
+      }).catch(() => {
+        // 忽略错误，可能是页面还没有加载内容脚本
+      });
+    }
+    
+    console.log('高亮颜色设置成功:', color);
+    showMessage('高亮颜色已更新', 'success');
+  } catch (error) {
+    console.error('设置高亮颜色失败:', error);
+    showMessage('设置颜色失败，请重试', 'error');
+  }
+}
+
+// 更新颜色选择状态
+function updateColorSelection() {
+  const colorOptions = document.querySelectorAll('.color-option');
+  const customColorInput = document.getElementById('customColor');
+  
+  // 更新自定义颜色输入框的值
+  customColorInput.value = currentHighlightColor;
+  
+  // 更新预设颜色选择状态
+  colorOptions.forEach(option => {
+    option.classList.remove('active');
+    if (option.dataset.color === currentHighlightColor) {
+      option.classList.add('active');
+    }
+  });
+  
+  // 如果当前颜色不在预设中，清除所有预设的选中状态
+  const isPresetColor = Array.from(colorOptions).some(option => 
+    option.dataset.color === currentHighlightColor
+  );
+  
+  if (!isPresetColor) {
+    colorOptions.forEach(option => option.classList.remove('active'));
+  }
+} 
