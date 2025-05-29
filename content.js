@@ -1111,15 +1111,174 @@ function highlightSavedWords() {
   
   if (savedWords.size === 0) return;
   
-  // 创建正则表达式匹配已保存的单词
-  const wordsPattern = Array.from(savedWords)
-    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|');
-  
-  const regex = new RegExp(`\\b(${wordsPattern})\\b`, 'gi');
+  // 创建词根匹配的正则表达式
+  const regex = createWordMatchingRegex(Array.from(savedWords));
   
   // 遍历文本节点并高亮
   highlightTextNodes(document.body, regex);
+}
+
+// 创建词根匹配的正则表达式
+function createWordMatchingRegex(savedWordsArray) {
+  const patterns = [];
+  
+  savedWordsArray.forEach(word => {
+    // 转义特殊字符
+    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // 添加精确匹配
+    patterns.push(escapedWord);
+    
+    // 添加词根匹配模式
+    const stemPatterns = generateStemPatterns(word);
+    patterns.push(...stemPatterns);
+  });
+  
+  // 去重并创建正则表达式
+  const uniquePatterns = [...new Set(patterns)];
+  const combinedPattern = uniquePatterns.join('|');
+  
+  return new RegExp(`\\b(${combinedPattern})\\b`, 'gi');
+}
+
+// 生成词根匹配模式
+function generateStemPatterns(word) {
+  const patterns = [];
+  const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  
+  // 常见英语词尾变化规则
+  const suffixes = [
+    // 动词变化
+    's', 'es', 'ed', 'ing', 'd',
+    // 名词复数
+    'es', 's',
+    // 形容词比较级
+    'er', 'est',
+    // 副词
+    'ly',
+    // 其他常见后缀
+    'tion', 'sion', 'ness', 'ment', 'able', 'ible', 'ful', 'less'
+  ];
+  
+  suffixes.forEach(suffix => {
+    // 为每个后缀创建匹配模式
+    patterns.push(`${escapedWord}${suffix}`);
+    
+    // 处理一些特殊变化规则
+    if (word.length > 3) {
+      // 双写辅音字母的情况 (如 run -> running)
+      const lastChar = word.slice(-1);
+      const secondLastChar = word.slice(-2, -1);
+      if (isConsonant(lastChar) && isVowel(secondLastChar) && word.length > 3) {
+        patterns.push(`${escapedWord}${lastChar}${suffix}`);
+      }
+      
+      // 去e加后缀的情况 (如 make -> making)
+      if (word.endsWith('e') && (suffix === 'ing' || suffix === 'ed' || suffix === 'er' || suffix === 'est')) {
+        const wordWithoutE = word.slice(0, -1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        patterns.push(`${wordWithoutE}${suffix}`);
+      }
+      
+      // 变y为i的情况 (如 happy -> happier)
+      if (word.endsWith('y') && word.length > 3) {
+        const wordWithI = word.slice(0, -1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 'i';
+        patterns.push(`${wordWithI}${suffix}`);
+        if (suffix === 'es') {
+          patterns.push(`${wordWithI}es`);
+        }
+      }
+    }
+  });
+  
+  return patterns;
+}
+
+// 判断是否为辅音字母
+function isConsonant(char) {
+  return char && /^[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]$/.test(char);
+}
+
+// 判断是否为元音字母
+function isVowel(char) {
+  return char && /^[aeiouAEIOU]$/.test(char);
+}
+
+// 查找匹配的词根
+function findMatchingRoot(word) {
+  const wordLower = word.toLowerCase();
+  
+  // 首先检查是否有精确匹配
+  if (savedWords.has(wordLower)) {
+    return wordLower;
+  }
+  
+  // 检查是否有词根匹配
+  for (const savedWord of savedWords) {
+    if (isWordVariant(wordLower, savedWord)) {
+      return savedWord;
+    }
+  }
+  
+  return null;
+}
+
+// 判断是否为单词的变形
+function isWordVariant(word, rootWord) {
+  // 如果单词就是词根，直接返回true
+  if (word === rootWord) {
+    return true;
+  }
+  
+  // 检查是否以词根开头
+  if (!word.startsWith(rootWord)) {
+    return false;
+  }
+  
+  // 获取后缀部分
+  const suffix = word.substring(rootWord.length);
+  
+  // 常见的有效后缀
+  const validSuffixes = [
+    's', 'es', 'ed', 'ing', 'd', 'er', 'est', 'ly',
+    'tion', 'sion', 'ness', 'ment', 'able', 'ible', 'ful', 'less'
+  ];
+  
+  // 检查是否为有效后缀
+  if (validSuffixes.includes(suffix)) {
+    return true;
+  }
+  
+  // 检查双写辅音的情况
+  if (suffix.length > 1 && suffix[0] === rootWord.slice(-1)) {
+    const remainingSuffix = suffix.substring(1);
+    if (validSuffixes.includes(remainingSuffix)) {
+      return true;
+    }
+  }
+  
+  // 检查去e加后缀的情况
+  if (rootWord.endsWith('e')) {
+    const wordWithoutE = rootWord.slice(0, -1);
+    if (word.startsWith(wordWithoutE)) {
+      const suffixFromE = word.substring(wordWithoutE.length);
+      if (['ing', 'ed', 'er', 'est'].includes(suffixFromE)) {
+        return true;
+      }
+    }
+  }
+  
+  // 检查变y为i的情况
+  if (rootWord.endsWith('y') && rootWord.length > 3) {
+    const wordWithI = rootWord.slice(0, -1) + 'i';
+    if (word.startsWith(wordWithI)) {
+      const suffixFromI = word.substring(wordWithI.length);
+      if (validSuffixes.includes(suffixFromI)) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
 }
 
 // 高亮文本节点中的单词
@@ -1128,7 +1287,17 @@ function highlightTextNodes(node, regex) {
     const text = node.textContent;
     if (regex.test(text)) {
       const highlightedHTML = text.replace(regex, (match) => {
-        return `<span class="lv-highlighted-word" data-word="${match.toLowerCase()}" style="background-color: ${currentHighlightColor}">${match}</span>`;
+        // 查找匹配的词根
+        const matchingRoot = findMatchingRoot(match);
+        const dataWord = matchingRoot || match.toLowerCase();
+        
+        // 如果找到了词根且不是精确匹配，则只高亮词根部分
+        if (matchingRoot && matchingRoot !== match.toLowerCase()) {
+          return highlightWordRoot(match, matchingRoot);
+        } else {
+          // 精确匹配或没有找到词根，高亮整个单词
+          return `<span class="lv-highlighted-word" data-word="${dataWord}" style="background-color: ${currentHighlightColor}">${match}</span>`;
+        }
       });
       
       const wrapper = document.createElement('div');
@@ -1160,6 +1329,63 @@ function highlightTextNodes(node, regex) {
     const children = Array.from(node.childNodes);
     children.forEach(child => highlightTextNodes(child, regex));
   }
+}
+
+// 高亮单词中的词根部分
+function highlightWordRoot(fullWord, rootWord) {
+  const fullWordLower = fullWord.toLowerCase();
+  const rootWordLower = rootWord.toLowerCase();
+  
+  // 查找词根在单词中的位置
+  let rootStartIndex = -1;
+  let rootEndIndex = -1;
+  
+  // 直接匹配词根
+  if (fullWordLower.startsWith(rootWordLower)) {
+    rootStartIndex = 0;
+    rootEndIndex = rootWordLower.length;
+  } else {
+    // 处理特殊变化情况
+    
+    // 1. 去e加后缀的情况 (如 make -> making)
+    if (rootWordLower.endsWith('e')) {
+      const rootWithoutE = rootWordLower.slice(0, -1);
+      if (fullWordLower.startsWith(rootWithoutE)) {
+        rootStartIndex = 0;
+        rootEndIndex = rootWithoutE.length;
+      }
+    }
+    
+    // 2. 变y为i的情况 (如 happy -> happier)
+    if (rootWordLower.endsWith('y') && rootWordLower.length > 3) {
+      const rootWithI = rootWordLower.slice(0, -1) + 'i';
+      if (fullWordLower.startsWith(rootWithI)) {
+        rootStartIndex = 0;
+        rootEndIndex = rootWordLower.length; // 保持原始词根长度
+      }
+    }
+    
+    // 3. 双写辅音的情况 (如 run -> running)
+    const lastChar = rootWordLower.slice(-1);
+    const doubleConsonant = rootWordLower + lastChar;
+    if (fullWordLower.startsWith(doubleConsonant)) {
+      rootStartIndex = 0;
+      rootEndIndex = rootWordLower.length; // 只高亮原始词根，不包括双写的字母
+    }
+  }
+  
+  // 如果找不到词根位置，回退到高亮整个单词
+  if (rootStartIndex === -1) {
+    return `<span class="lv-highlighted-word" data-word="${rootWordLower}" style="background-color: ${currentHighlightColor}">${fullWord}</span>`;
+  }
+  
+  // 分割单词：前缀 + 词根 + 后缀
+  const prefix = fullWord.substring(0, rootStartIndex);
+  const root = fullWord.substring(rootStartIndex, rootEndIndex);
+  const suffix = fullWord.substring(rootEndIndex);
+  
+  // 只高亮词根部分，但整个单词都可以点击
+  return `<span class="lv-highlighted-word" data-word="${rootWordLower}" style="cursor: pointer;" title="点击查看翻译">${prefix}<span class="lv-root-highlight" style="background-color: ${currentHighlightColor}">${root}</span>${suffix}</span>`;
 }
 
 // 设置单词悬停事件
@@ -1195,21 +1421,29 @@ function handleWordClick(event) {
 // 显示单词提示框
 async function showWordTooltip(word, element) {
   try {
-    const wordLower = word.toLowerCase();
+    // word 是词根，element.textContent 是实际显示的单词
+    const actualWord = element.textContent.toLowerCase();
+    const rootWord = word.toLowerCase();
+    
     let translationData;
     
-    // 优先从缓存获取翻译数据
-    if (translationCache.has(wordLower)) {
-      console.log('从缓存获取悬停翻译:', word);
-      translationData = translationCache.get(wordLower);
+    // 优先从缓存获取实际单词的翻译数据
+    if (translationCache.has(actualWord)) {
+      console.log('从缓存获取悬停翻译:', actualWord);
+      translationData = translationCache.get(actualWord);
+    } else if (translationCache.has(rootWord)) {
+      console.log('从缓存获取词根翻译:', rootWord);
+      translationData = translationCache.get(rootWord);
     } else {
-      // 如果缓存中没有，则重新翻译
-      translationData = await translateWord(word);
+      // 如果缓存中没有，则翻译实际单词
+      translationData = await translateWord(actualWord);
     }
     
     const rect = element.getBoundingClientRect();
     
-    const tooltipContent = createTranslationContent(word, translationData, true);
+    // 收藏状态基于词根判断
+    const isSaved = savedWords.has(rootWord);
+    const tooltipContent = createTranslationContent(actualWord, translationData, isSaved);
     const tooltip = createTooltip(tooltipContent, rect);
     tooltip.innerHTML = tooltipContent;
     
@@ -1217,7 +1451,8 @@ async function showWordTooltip(word, element) {
     const favoriteBtn = tooltip.querySelector('.lv-favorite-btn');
     if (favoriteBtn) {
       favoriteBtn.addEventListener('click', () => {
-        toggleFavorite(word, favoriteBtn, translationData);
+        // 收藏操作基于实际单词，但会影响词根的收藏状态
+        toggleFavorite(actualWord, favoriteBtn, translationData);
       });
     }
     

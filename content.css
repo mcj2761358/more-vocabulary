@@ -338,20 +338,32 @@
 
 /* 高亮单词样式 */
 .lv-highlighted-word {
-  /* 背景色将通过JavaScript动态设置 */
-  padding: 2px 4px;
-  border-radius: 4px;
   cursor: pointer;
+  border-radius: 3px;
+  padding: 1px 2px;
   transition: all 0.2s ease;
   position: relative;
+  display: inline;
   font-weight: 500;
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .lv-highlighted-word:hover {
-  transform: translateY(-1px);
+  transform: scale(1.02);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  filter: brightness(0.9);
+  z-index: 1;
+}
+
+/* 部分高亮样式 - 只高亮词根部分 */
+.lv-highlighted-word .lv-root-highlight {
+  border-radius: 3px;
+  padding: 1px 2px;
+  font-weight: 600;
+  position: relative;
+}
+
+/* 部分高亮的悬停效果 */
+.lv-highlighted-word:hover .lv-root-highlight {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* 动画效果 */
