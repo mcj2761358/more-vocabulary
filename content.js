@@ -1078,9 +1078,30 @@ async function showWordTooltip(word, element) {
 
 // 监听存储变化
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.savedWords) {
-    savedWords = new Set(changes.savedWords.newValue || []);
-    highlightSavedWords();
+  if (namespace === 'local') {
+    let shouldUpdateHighlight = false;
+    
+    if (changes.savedWords) {
+      savedWords = new Set(changes.savedWords.newValue || []);
+      shouldUpdateHighlight = true;
+      console.log('存储变化：单词列表已更新，数量:', savedWords.size);
+    }
+    
+    if (changes.savedWordsData) {
+      const rawData = changes.savedWordsData.newValue || [];
+      savedWordsData = new Map(rawData);
+      console.log('存储变化：单词详细数据已更新，数量:', savedWordsData.size);
+    }
+    
+    if (changes.translationCache) {
+      const rawCache = changes.translationCache.newValue || [];
+      translationCache = new Map(rawCache);
+      console.log('存储变化：翻译缓存已更新，数量:', translationCache.size);
+    }
+    
+    if (shouldUpdateHighlight) {
+      highlightSavedWords();
+    }
   }
 });
 
@@ -1089,6 +1110,21 @@ function setupMessageListener() {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'updateHighlightColor') {
       updateHighlightColor(message.color);
+      sendResponse({ success: true });
+    } else if (message.type === 'wordDeleted') {
+      // 处理单词删除消息
+      const wordLower = message.word;
+      console.log('收到删除单词消息:', wordLower);
+      
+      // 从内存中删除
+      savedWords.delete(wordLower);
+      savedWordsData.delete(wordLower);
+      translationCache.delete(wordLower);
+      
+      // 重新高亮单词
+      highlightSavedWords();
+      
+      console.log('content script已同步删除单词:', wordLower);
       sendResponse({ success: true });
     }
   });

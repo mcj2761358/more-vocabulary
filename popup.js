@@ -126,11 +126,30 @@ function updateWordsList() {
   const wordsHTML = savedWords.map(word => `
     <div class="word-item" data-word="${word}">
       <span class="word-text">${word}</span>
-      <button class="delete-btn" onclick="deleteWord('${word}')">删除</button>
+      <button class="delete-btn" data-word="${word}">删除</button>
     </div>
   `).join('');
   
   wordsListElement.innerHTML = wordsHTML;
+  
+  // 为删除按钮添加事件监听器
+  const deleteButtons = wordsListElement.querySelectorAll('.delete-btn');
+  console.log('找到删除按钮数量:', deleteButtons.length);
+  
+  deleteButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      console.log('删除按钮被点击');
+      e.preventDefault();
+      e.stopPropagation();
+      const word = button.getAttribute('data-word');
+      console.log('要删除的单词:', word);
+      if (word) {
+        deleteWord(word);
+      } else {
+        console.error('未找到要删除的单词');
+      }
+    });
+  });
 }
 
 // 更新操作按钮状态
@@ -156,26 +175,89 @@ function setupEventListeners() {
   
   // 监听存储变化
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes[STORAGE_KEYS.SAVED_WORDS]) {
-      savedWords = changes[STORAGE_KEYS.SAVED_WORDS].newValue || [];
-      updateUI();
+    if (namespace === 'local') {
+      let shouldUpdate = false;
+      
+      if (changes[STORAGE_KEYS.SAVED_WORDS]) {
+        savedWords = changes[STORAGE_KEYS.SAVED_WORDS].newValue || [];
+        shouldUpdate = true;
+      }
+      
+      if (changes[STORAGE_KEYS.SAVED_WORDS_DATA]) {
+        const rawData = changes[STORAGE_KEYS.SAVED_WORDS_DATA].newValue || [];
+        savedWordsData = new Map(rawData);
+        shouldUpdate = true;
+      }
+      
+      if (shouldUpdate) {
+        updateUI();
+      }
     }
   });
 }
 
 // 删除单个单词
 async function deleteWord(word) {
+  console.log('deleteWord函数被调用，单词:', word);
+  
   try {
-    const updatedWords = savedWords.filter(w => w !== word);
-    await chrome.storage.local.set({ 
-      [STORAGE_KEYS.SAVED_WORDS]: updatedWords 
-    });
+    const wordLower = word.toLowerCase();
+    console.log('准备删除单词:', wordLower);
+    
+    // 从数组中移除单词
+    const updatedWords = savedWords.filter(w => w.toLowerCase() !== wordLower);
+    console.log('更新后的单词列表:', updatedWords);
+    
+    // 从详细数据Map中移除
+    savedWordsData.delete(wordLower);
+    
+    // 获取当前所有存储数据
+    const currentData = await chrome.storage.local.get([
+      STORAGE_KEYS.SAVED_WORDS,
+      STORAGE_KEYS.SAVED_WORDS_DATA,
+      STORAGE_KEYS.TRANSLATION_CACHE
+    ]);
+    
+    // 准备要保存的数据
+    const dataToSave = {
+      [STORAGE_KEYS.SAVED_WORDS]: updatedWords,
+      [STORAGE_KEYS.SAVED_WORDS_DATA]: Array.from(savedWordsData.entries())
+    };
+    
+    // 同时删除翻译缓存
+    const cacheArray = currentData[STORAGE_KEYS.TRANSLATION_CACHE] || [];
+    const updatedCache = cacheArray.filter(([key, value]) => key !== wordLower);
+    dataToSave[STORAGE_KEYS.TRANSLATION_CACHE] = updatedCache;
+    
+    console.log('准备保存的数据:', dataToSave);
+    
+    // 保存到存储
+    await chrome.storage.local.set(dataToSave);
+    
+    // 更新本地状态
     savedWords = updatedWords;
+    
+    // 通知所有标签页的content script更新
+    try {
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, {
+          type: 'wordDeleted',
+          word: wordLower
+        }).catch(() => {
+          // 忽略错误，可能是页面没有加载content script
+        });
+      }
+    } catch (error) {
+      console.log('通知content script失败:', error);
+    }
+    
     updateUI();
     console.log('删除单词成功:', word);
+    showMessage(`已删除单词: ${word}`, 'success');
   } catch (error) {
     console.error('删除单词失败:', error);
-    alert('删除单词失败，请重试');
+    showMessage('删除单词失败，请重试', 'error');
   }
 }
 
@@ -183,15 +265,23 @@ async function deleteWord(word) {
 async function clearAllWords() {
   if (confirm('确定要清空所有收藏的单词吗？此操作不可撤销。')) {
     try {
-      await chrome.storage.local.set({ 
-        [STORAGE_KEYS.SAVED_WORDS]: [] 
-      });
+      // 清空所有数据
+      const dataToSave = {
+        [STORAGE_KEYS.SAVED_WORDS]: [],
+        [STORAGE_KEYS.SAVED_WORDS_DATA]: [],
+        [STORAGE_KEYS.TRANSLATION_CACHE]: []
+      };
+      
+      await chrome.storage.local.set(dataToSave);
+      
       savedWords = [];
+      savedWordsData = new Map();
       updateUI();
       console.log('清空所有单词成功');
+      showMessage('已清空所有收藏的单词', 'success');
     } catch (error) {
       console.error('清空单词失败:', error);
-      alert('清空单词失败，请重试');
+      showMessage('清空单词失败，请重试', 'error');
     }
   }
 }
@@ -342,9 +432,6 @@ function showMessage(message, type = 'info') {
     }
   }, 3000);
 }
-
-// 将deleteWord函数暴露到全局作用域
-window.deleteWord = deleteWord;
 
 // 设置颜色选择功能
 function setupColorSettings() {
