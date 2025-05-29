@@ -1,0 +1,362 @@
+/* 翻译按钮样式 */
+.lv-translation-button {
+  position: absolute;
+  z-index: 10000;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  animation: lv-fadeIn 0.3s ease;
+}
+
+.lv-translation-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 提示框样式 */
+.lv-tooltip {
+  position: absolute;
+  z-index: 10001;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e1e5e9;
+  padding: 0;
+  max-width: 400px;
+  min-width: 280px;
+  animation: lv-slideUp 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.lv-translation-content {
+  padding: 20px;
+}
+
+/* 单词头部区域 */
+.lv-word-header {
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 12px;
+}
+
+.lv-word {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+  text-transform: capitalize;
+}
+
+/* 音标样式 */
+.lv-phonetic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.lv-phonetic-text {
+  font-size: 16px;
+  color: #667eea;
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+}
+
+.lv-audio-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.lv-audio-btn:hover {
+  background: #f7fafc;
+}
+
+/* 翻译区域样式 */
+.lv-translations-section,
+.lv-definitions-section {
+  margin-bottom: 16px;
+}
+
+.lv-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #f7fafc;
+  border-radius: 4px;
+  border-left: 3px solid #667eea;
+}
+
+/* 翻译项目样式 */
+.lv-translation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #28a745;
+}
+
+.lv-translation-text {
+  font-size: 15px;
+  color: #2d3748;
+  flex: 1;
+}
+
+.lv-translation-source {
+  font-size: 12px;
+  color: #6c757d;
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+}
+
+/* 词性和定义样式 */
+.lv-part-of-speech {
+  margin-bottom: 12px;
+}
+
+.lv-pos-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #667eea;
+  background: #edf2f7;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.lv-definition-item {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fafafa;
+  border-radius: 6px;
+  border-left: 3px solid #17a2b8;
+}
+
+.lv-definition-text {
+  font-size: 14px;
+  color: #2d3748;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+/* 例句样式 */
+.lv-example {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fff3cd;
+  border-radius: 4px;
+  border-left: 3px solid #ffc107;
+}
+
+.lv-example-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #856404;
+  margin-right: 6px;
+}
+
+.lv-example-text {
+  font-size: 13px;
+  color: #856404;
+  font-style: italic;
+}
+
+/* 同义词样式 */
+.lv-synonyms {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: #d1ecf1;
+  border-radius: 4px;
+  border-left: 3px solid #17a2b8;
+}
+
+.lv-synonyms-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0c5460;
+  margin-right: 6px;
+}
+
+.lv-synonyms-text {
+  font-size: 12px;
+  color: #0c5460;
+}
+
+/* 收藏按钮样式 */
+.lv-favorite-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #4a5568;
+  width: 100%;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.lv-favorite-btn:hover {
+  background: #edf2f7;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.lv-favorite-btn[data-saved="true"] {
+  background: #fed7d7;
+  border-color: #feb2b2;
+  color: #c53030;
+}
+
+.lv-favorite-btn[data-saved="true"]:hover {
+  background: #fbb6ce;
+  border-color: #f687b3;
+}
+
+.lv-favorite-icon {
+  font-size: 16px;
+}
+
+.lv-favorite-text {
+  font-weight: 500;
+}
+
+/* 高亮单词样式 */
+.lv-highlighted-word {
+  background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-weight: 500;
+}
+
+.lv-highlighted-word:hover {
+  background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 动画效果 */
+@keyframes lv-fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes lv-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .lv-tooltip {
+    max-width: 320px;
+    min-width: 250px;
+  }
+  
+  .lv-translation-button {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .lv-word {
+    font-size: 18px;
+  }
+  
+  .lv-translation-content {
+    padding: 16px;
+  }
+  
+  .lv-translation-text {
+    font-size: 14px;
+  }
+  
+  .lv-definition-text {
+    font-size: 13px;
+  }
+}
+
+/* 确保不影响页面原有样式 */
+.lv-tooltip * {
+  box-sizing: border-box;
+}
+
+.lv-translation-button * {
+  box-sizing: border-box;
+}
+
+/* 防止与页面样式冲突 */
+.lv-tooltip,
+.lv-translation-button {
+  all: initial;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.lv-tooltip {
+  position: absolute !important;
+  z-index: 10001 !important;
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e1e5e9 !important;
+  padding: 0 !important;
+  max-width: 400px !important;
+  min-width: 280px !important;
+  animation: lv-slideUp 0.3s ease !important;
+}
+
+.lv-translation-button {
+  position: absolute !important;
+  z-index: 10000 !important;
+  width: 30px !important;
+  height: 30px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  font-size: 16px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.3s ease !important;
+  animation: lv-fadeIn 0.3s ease !important;
+} 
