@@ -92,6 +92,92 @@
   background: #f7fafc;
 }
 
+/* 发音按钮区域样式 */
+.lv-pronunciation-section {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.lv-pronunciation-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.lv-pronunciation-row:last-child {
+  margin-bottom: 0;
+}
+
+.lv-pronunciation-phonetic {
+  font-size: 14px;
+  font-family: 'Times New Roman', serif;
+  color: #667eea;
+  font-weight: 500;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lv-pronunciation-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s ease;
+  min-width: 65px;
+  justify-content: center;
+}
+
+.lv-pronunciation-btn:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.lv-pronunciation-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.lv-pronunciation-us {
+  border-left: 3px solid #dc3545;
+}
+
+.lv-pronunciation-uk {
+  border-left: 3px solid #007bff;
+}
+
+.lv-pronunciation-us:hover {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  border-color: #dc3545;
+}
+
+.lv-pronunciation-uk:hover {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border-color: #007bff;
+}
+
+.lv-pronunciation-icon {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.lv-pronunciation-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
 /* 翻译区域样式 */
 .lv-translations-section,
 .lv-definitions-section {

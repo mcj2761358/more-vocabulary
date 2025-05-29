@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音朗读功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .word {
+            font-weight: bold;
+            color: #333;
+            margin: 0 5px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .instructions {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔊 语音朗读功能测试页面</h1>
+    
+    <div class="instructions">
+        <strong>测试说明：</strong>
+        <ol>
+            <li>选中下面的英文单词，会出现翻译按钮</li>
+            <li>点击翻译按钮查看翻译结果</li>
+            <li>在翻译框中可以看到美式和英式发音分两行显示，每行前面有音标</li>
+            <li>点击"美式"或"英式"按钮测试语音朗读</li>
+            <li>收藏单词后，悬停在高亮单词上也可以使用语音功能</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>基础单词测试</h2>
+        <p>
+            The <span class="word">beautiful</span> <span class="word">garden</span> was filled with colorful <span class="word">flowers</span> and <span class="word">butterflies</span>.
+        </p>
+        <p>
+            She decided to <span class="word">study</span> <span class="word">computer</span> science at the <span class="word">university</span>.
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>常用词汇测试</h2>
+        <p>
+            The <span class="word">important</span> <span class="word">meeting</span> will <span class="word">discuss</span> the <span class="word">development</span> of new <span class="word">technology</span>.
+        </p>
+        <p>
+            <span class="word">Education</span> is the <span class="word">foundation</span> of <span class="word">success</span> in modern <span class="word">society</span>.
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>复杂单词测试</h2>
+        <p>
+            The <span class="word">extraordinary</span> <span class="word">achievement</span> was <span class="word">accomplished</span> through <span class="word">perseverance</span> and <span class="word">dedication</span>.
+        </p>
+        <p>
+            <span class="word">Environmental</span> <span class="word">sustainability</span> requires <span class="word">comprehensive</span> <span class="word">understanding</span> and <span class="word">implementation</span>.
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>发音差异测试</h2>
+        <p>
+            测试美式和英式发音差异的单词：
+        </p>
+        <p>
+            <span class="word">schedule</span>, <span class="word">privacy</span>, <span class="word">advertisement</span>, <span class="word">laboratory</span>, <span class="word">aluminum</span>
+        </p>
+        <p>
+            <span class="word">tomato</span>, <span class="word">garage</span>, <span class="word">route</span>, <span class="word">leisure</span>, <span class="word">controversy</span>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>功能验证清单</h2>
+        <ul>
+            <li>✅ 选中单词显示翻译按钮</li>
+            <li>✅ 翻译框显示美式和英式发音分两行布局</li>
+            <li>✅ 每行发音按钮前显示对应的音标</li>
+            <li>✅ 点击发音按钮播放语音</li>
+            <li>✅ 发音按钮有视觉反馈效果</li>
+            <li>✅ 收藏单词后高亮显示</li>
+            <li>✅ 悬停高亮单词显示发音按钮</li>
+            <li>✅ 语音播放失败时显示错误提示</li>
+            <li>✅ 美式和英式发音按钮有不同的颜色标识</li>
+        </ul>
+    </div>
+</body>
+</html> 

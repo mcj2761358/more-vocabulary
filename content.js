@@ -433,6 +433,24 @@ async function showTranslation(word, rect) {
       });
     });
     
+    // 添加发音按钮事件
+    const pronunciationButtons = tooltip.querySelectorAll('.lv-pronunciation-btn');
+    pronunciationButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const word = btn.dataset.word;
+        const accent = btn.dataset.accent;
+        
+        // 添加点击效果
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          btn.style.transform = 'scale(1)';
+        }, 150);
+        
+        playWordPronunciation(word, accent);
+      });
+    });
+    
   } catch (error) {
     removeTooltip();
     const errorContent = `
@@ -453,6 +471,14 @@ function createTranslationContent(word, translationData, isSaved) {
   const favoriteIcon = isSaved ? '❤️' : '🤍';
   const favoriteText = isSaved ? '取消收藏' : '收藏';
   
+  // 查找音标信息
+  const phoneticItem = translationData.translations.find(t => t.type === 'phonetic');
+  const phoneticText = phoneticItem ? phoneticItem.text : `/${word}/`;
+  
+  // 为美式和英式音标提供不同的显示（如果有的话）
+  const usPhonetic = phoneticText;
+  const ukPhonetic = phoneticText;
+  
   let contentHTML = `
     <div class="lv-translation-content">
       <div class="lv-word-header">
@@ -463,18 +489,25 @@ function createTranslationContent(word, translationData, isSaved) {
             <span class="lv-favorite-text">${favoriteText}</span>
           </button>
         </div>
+        
+        <!-- 发音按钮区域 -->
+        <div class="lv-pronunciation-section">
+          <div class="lv-pronunciation-row">
+            <span class="lv-pronunciation-phonetic">🇺🇸 ${usPhonetic}</span>
+            <button class="lv-pronunciation-btn lv-pronunciation-us" data-word="${word}" data-accent="us" title="美式发音">
+              <span class="lv-pronunciation-icon">🔊</span>
+              <span class="lv-pronunciation-label">美式</span>
+            </button>
+          </div>
+          <div class="lv-pronunciation-row">
+            <span class="lv-pronunciation-phonetic">🇬🇧 ${ukPhonetic}</span>
+            <button class="lv-pronunciation-btn lv-pronunciation-uk" data-word="${word}" data-accent="uk" title="英式发音">
+              <span class="lv-pronunciation-icon">🔊</span>
+              <span class="lv-pronunciation-label">英式</span>
+            </button>
+          </div>
+        </div>
   `;
-  
-  // 查找并显示音标
-  const phoneticItem = translationData.translations.find(t => t.type === 'phonetic');
-  if (phoneticItem) {
-    contentHTML += `
-      <div class="lv-phonetic">
-        <span class="lv-phonetic-text">${phoneticItem.text}</span>
-        ${phoneticItem.audio ? `<button class="lv-audio-btn" data-audio="${phoneticItem.audio}" title="播放发音">🔊</button>` : ''}
-      </div>
-    `;
-  }
   
   contentHTML += `</div>`;
   
@@ -575,14 +608,149 @@ function getPartOfSpeechChinese(partOfSpeech) {
 function playAudio(audioUrl) {
   if (!audioUrl) return;
   
+  console.log('尝试播放音频:', audioUrl);
+  
   try {
     const audio = new Audio(audioUrl);
-    audio.play().catch(error => {
+    
+    // 添加音频事件监听
+    audio.addEventListener('loadstart', () => {
+      console.log('音频开始加载');
+    });
+    
+    audio.addEventListener('canplay', () => {
+      console.log('音频可以播放');
+    });
+    
+    audio.addEventListener('error', (e) => {
+      console.error('音频加载错误:', e);
+      console.error('错误详情:', audio.error);
+    });
+    
+    // 尝试播放
+    audio.play().then(() => {
+      console.log('音频播放成功');
+    }).catch(error => {
       console.error('音频播放失败:', error);
+      
+      // 如果是HTTPS音频URL在HTTP页面的问题，尝试替换协议
+      if (audioUrl.startsWith('https://') && window.location.protocol === 'http:') {
+        const httpUrl = audioUrl.replace('https://', 'http://');
+        console.log('尝试HTTP版本音频:', httpUrl);
+        const httpAudio = new Audio(httpUrl);
+        httpAudio.play().catch(err => {
+          console.error('HTTP音频也播放失败:', err);
+        });
+      }
     });
   } catch (error) {
     console.error('音频创建失败:', error);
   }
+}
+
+// 使用TTS服务播放单词发音
+async function playWordPronunciation(word, accent = 'us') {
+  console.log(`播放${accent === 'us' ? '美式' : '英式'}发音:`, word);
+  
+  try {
+    // 方法1: 使用Google TTS (免费)
+    const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(word)}&tk=1`;
+    
+    // 方法2: 使用ResponsiveVoice (备用)
+    const responsiveVoiceUrl = accent === 'us' 
+      ? `https://responsivevoice.org/responsivevoice/getvoice.php?t=${encodeURIComponent(word)}&tl=en-US&sv=g1&vn=&pitch=0.5&rate=0.5&vol=1`
+      : `https://responsivevoice.org/responsivevoice/getvoice.php?t=${encodeURIComponent(word)}&tl=en-GB&sv=g1&vn=&pitch=0.5&rate=0.5&vol=1`;
+    
+    // 方法3: 使用浏览器内置TTS (最可靠)
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+      utterance.rate = 0.8;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      
+      // 尝试选择合适的语音
+      const voices = speechSynthesis.getVoices();
+      const targetVoice = voices.find(voice => 
+        voice.lang.startsWith(accent === 'us' ? 'en-US' : 'en-GB')
+      ) || voices.find(voice => voice.lang.startsWith('en'));
+      
+      if (targetVoice) {
+        utterance.voice = targetVoice;
+        console.log('使用语音:', targetVoice.name, targetVoice.lang);
+      }
+      
+      utterance.onstart = () => {
+        console.log('TTS开始播放');
+      };
+      
+      utterance.onend = () => {
+        console.log('TTS播放完成');
+      };
+      
+      utterance.onerror = (error) => {
+        console.error('TTS播放错误:', error);
+        // 如果TTS失败，尝试在线音频
+        fallbackToOnlineAudio(word, googleTTSUrl);
+      };
+      
+      speechSynthesis.speak(utterance);
+      return;
+    }
+    
+    // 如果不支持TTS，直接使用在线音频
+    fallbackToOnlineAudio(word, googleTTSUrl);
+    
+  } catch (error) {
+    console.error('播放发音失败:', error);
+  }
+}
+
+// 备用在线音频播放
+function fallbackToOnlineAudio(word, audioUrl) {
+  console.log('使用在线音频播放:', audioUrl);
+  
+  try {
+    const audio = new Audio(audioUrl);
+    audio.play().catch(error => {
+      console.error('在线音频播放失败:', error);
+      // 最后的备用方案：显示提示
+      showAudioError(word);
+    });
+  } catch (error) {
+    console.error('在线音频创建失败:', error);
+    showAudioError(word);
+  }
+}
+
+// 显示音频播放错误提示
+function showAudioError(word) {
+  console.log('音频播放失败，显示提示');
+  
+  // 创建临时提示
+  const errorTip = document.createElement('div');
+  errorTip.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #ff6b6b;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 10000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  `;
+  errorTip.textContent = `无法播放 "${word}" 的发音`;
+  
+  document.body.appendChild(errorTip);
+  
+  // 3秒后自动移除
+  setTimeout(() => {
+    if (errorTip.parentNode) {
+      errorTip.remove();
+    }
+  }, 3000);
 }
 
 // 切换收藏状态
@@ -1059,6 +1227,24 @@ async function showWordTooltip(word, element) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         playAudio(btn.dataset.audio);
+      });
+    });
+    
+    // 添加发音按钮事件
+    const pronunciationButtons = tooltip.querySelectorAll('.lv-pronunciation-btn');
+    pronunciationButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const word = btn.dataset.word;
+        const accent = btn.dataset.accent;
+        
+        // 添加点击效果
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          btn.style.transform = 'scale(1)';
+        }, 150);
+        
+        playWordPronunciation(word, accent);
       });
     });
     
