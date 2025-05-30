@@ -342,10 +342,17 @@ function handleTextSelection(event) {
     // 移除之前的翻译按钮
     removeTranslationButton();
     
-    if (selectedText && isEnglishWord(selectedText)) {
+    if (selectedText) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      showTranslationButton(selectedText, rect);
+      
+      if (isEnglishWord(selectedText)) {
+        // 单个英文单词
+        showTranslationButton(selectedText, rect);
+      } else if (isEnglishText(selectedText)) {
+        // 包含英文的长文本
+        showTextTranslationButton(selectedText, rect);
+      }
     }
   }, 10);
 }
@@ -353,6 +360,16 @@ function handleTextSelection(event) {
 // 判断是否为英文单词
 function isEnglishWord(text) {
   return /^[a-zA-Z]+$/.test(text) && text.length > 1;
+}
+
+// 判断是否为包含英文的文本（用于长文本翻译）
+function isEnglishText(text) {
+  // 检查是否包含英文字母，且不是单个单词
+  const hasEnglish = /[a-zA-Z]/.test(text);
+  const isNotSingleWord = !/^[a-zA-Z]+$/.test(text);
+  const hasMinLength = text.length > 3;
+  
+  return hasEnglish && isNotSingleWord && hasMinLength;
 }
 
 // 显示翻译按钮
@@ -371,6 +388,32 @@ function showTranslationButton(word, rect) {
   translationButton.addEventListener('click', (e) => {
     e.stopPropagation();
     showTranslation(word, rect);
+  });
+  
+  document.body.appendChild(translationButton);
+  
+  // 3秒后自动隐藏
+  setTimeout(() => {
+    removeTranslationButton();
+  }, 3000);
+}
+
+// 显示长文本翻译按钮
+function showTextTranslationButton(text, rect) {
+  removeTranslationButton();
+  
+  translationButton = document.createElement('div');
+  translationButton.className = 'lv-translation-button lv-text-translation-button';
+  translationButton.innerHTML = '🌐';
+  translationButton.title = '翻译文本';
+  
+  // 定位按钮
+  translationButton.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
+  translationButton.style.top = `${rect.top + window.scrollY - 35}px`;
+  
+  translationButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showTextTranslation(text, rect);
   });
   
   document.body.appendChild(translationButton);
@@ -461,6 +504,47 @@ async function showTranslation(word, rect) {
     `;
     createTooltip(errorContent, rect);
     console.error('翻译失败:', error);
+  }
+  
+  isProcessing = false;
+}
+
+// 显示长文本翻译结果
+async function showTextTranslation(text, rect) {
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  removeTranslationButton();
+  removeTooltip();
+  
+  // 创建加载提示
+  const loadingContent = `
+    <div class="lv-loading-content">
+      <div class="lv-loading-spinner"></div>
+      <div class="lv-loading-text">正在翻译文本...</div>
+    </div>
+  `;
+  const loadingTooltip = createTooltip(loadingContent, rect);
+  
+  try {
+    const translationResult = await translateText(text);
+    removeTooltip();
+    
+    const tooltipContent = createTextTranslationContent(text, translationResult);
+    
+    const tooltip = createTooltip(tooltipContent, rect);
+    tooltip.innerHTML = tooltipContent;
+    
+  } catch (error) {
+    removeTooltip();
+    const errorContent = `
+      <div class="lv-error-content">
+        <div class="lv-error-icon">⚠️</div>
+        <div class="lv-error-text">翻译失败，请稍后重试</div>
+      </div>
+    `;
+    createTooltip(errorContent, rect);
+    console.error('文本翻译失败:', error);
   }
   
   isProcessing = false;
@@ -582,6 +666,42 @@ function createTranslationContent(word, translationData, isSaved) {
   }
   
   contentHTML += `</div>`;
+  
+  return contentHTML;
+}
+
+// 创建长文本翻译内容HTML
+function createTextTranslationContent(originalText, translationResult) {
+  // 截断显示的原文，如果太长的话
+  const maxDisplayLength = 100;
+  const displayText = originalText.length > maxDisplayLength 
+    ? originalText.substring(0, maxDisplayLength) + '...' 
+    : originalText;
+  
+  const contentHTML = `
+    <div class="lv-text-translation-content">
+      <div class="lv-text-header">
+        <div class="lv-text-title">
+          <span class="lv-text-icon">🌐</span>
+          <span class="lv-text-label">文本翻译</span>
+        </div>
+      </div>
+      
+      <div class="lv-text-body">
+        <div class="lv-original-text">
+          <div class="lv-text-section-title">原文:</div>
+          <div class="lv-text-content">${displayText}</div>
+        </div>
+        
+        <div class="lv-translation-divider">↓</div>
+        
+        <div class="lv-translated-text">
+          <div class="lv-text-section-title">译文:</div>
+          <div class="lv-text-content">${translationResult.translatedText}</div>
+        </div>
+      </div>
+    </div>
+  `;
   
   return contentHTML;
 }
@@ -1589,6 +1709,98 @@ async function updateHighlightColor(newColor) {
   highlightSavedWords();
   
   console.log('高亮颜色已更新:', newColor);
+}
+
+// 翻译长文本
+async function translateText(text) {
+  try {
+    // 优先使用微软翻译
+    let translation = await getMicrosoftTextTranslation(text);
+    
+    // 如果微软翻译失败，使用MyMemory作为备用
+    if (!translation) {
+      translation = await getMyMemoryTextTranslation(text);
+    }
+    
+    // 如果都失败了，返回错误信息
+    if (!translation) {
+      throw new Error('所有翻译服务都不可用');
+    }
+    
+    return {
+      originalText: text,
+      translatedText: translation,
+      timestamp: Date.now()
+    };
+    
+  } catch (error) {
+    console.error('文本翻译失败:', error);
+    throw error;
+  }
+}
+
+// 微软文本翻译
+async function getMicrosoftTextTranslation(text) {
+  try {
+    // 获取授权token
+    const authResponse = await fetch('https://edge.microsoft.com/translate/auth');
+    if (!authResponse.ok) {
+      throw new Error('获取微软翻译授权失败');
+    }
+    const authToken = await authResponse.text();
+    
+    // 进行翻译
+    const translateResponse = await fetch(
+      'https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&from=en&to=zh-Hans',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify([{ text: text }])
+      }
+    );
+    
+    if (!translateResponse.ok) {
+      throw new Error('微软翻译请求失败');
+    }
+    
+    const data = await translateResponse.json();
+    
+    if (data && data.length > 0 && data[0].translations && data[0].translations.length > 0) {
+      return data[0].translations[0].text;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('微软文本翻译失败:', error);
+    return null;
+  }
+}
+
+// MyMemory文本翻译
+async function getMyMemoryTextTranslation(text) {
+  try {
+    const response = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh`
+    );
+    
+    if (!response.ok) {
+      throw new Error('MyMemory API请求失败');
+    }
+    
+    const data = await response.json();
+    
+    if (data.responseStatus === 200 && data.responseData) {
+      return data.responseData.translatedText;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('MyMemory文本翻译失败:', error);
+    return null;
+  }
 }
 
 // 页面加载完成后初始化
