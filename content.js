@@ -19,6 +19,44 @@ const STORAGE_KEYS = {
   TRANSLATION_CACHE: 'translationCache'
 };
 
+// 检查扩展上下文是否有效
+function isExtensionContextValid() {
+  try {
+    // 尝试访问chrome.runtime，如果扩展上下文失效会抛出错误
+    return chrome.runtime && chrome.runtime.id;
+  } catch (error) {
+    console.warn('扩展上下文已失效:', error);
+    return false;
+  }
+}
+
+// 安全的存储操作包装器
+async function safeStorageOperation(operation, fallbackAction = null) {
+  try {
+    if (!isExtensionContextValid()) {
+      console.warn('扩展上下文失效，跳过存储操作');
+      if (fallbackAction) {
+        fallbackAction();
+      }
+      return false;
+    }
+    
+    await operation();
+    return true;
+  } catch (error) {
+    if (error.message.includes('Extension context invalidated')) {
+      console.warn('扩展上下文失效，存储操作失败:', error);
+      if (fallbackAction) {
+        fallbackAction();
+      }
+      return false;
+    } else {
+      console.error('存储操作失败:', error);
+      throw error;
+    }
+  }
+}
+
 // 初始化
 async function init() {
   try {
@@ -54,6 +92,13 @@ async function init() {
       setupMessageListener();
     } catch (error) {
       console.error('消息监听器初始化失败:', error);
+    }
+    
+    // 设置扩展上下文恢复检测
+    try {
+      setupExtensionContextRecovery();
+    } catch (error) {
+      console.error('扩展上下文恢复检测初始化失败:', error);
     }
     
     console.log('多多记单词扩展初始化完成');
@@ -114,6 +159,7 @@ async function saveWord(word, translationData = null) {
   const wordLower = word.toLowerCase();
   const timestamp = Date.now();
   
+  // 先保存到内存
   savedWords.add(wordLower);
   
   // 保存单词详细信息
@@ -128,40 +174,68 @@ async function saveWord(word, translationData = null) {
     translationCache.set(wordLower, translationData);
   }
   
+  // 尝试保存到存储，如果失败也不影响内存中的数据
   try {
     await saveWordsToStorage();
     await saveWordsDataToStorage();
     await saveTranslationCache();
-    highlightSavedWords();
     console.log('保存单词成功:', word);
   } catch (error) {
-    console.error('保存单词失败:', error);
-    // 从内存中移除，保持一致性
-    savedWords.delete(wordLower);
-    savedWordsData.delete(wordLower);
-    if (translationData) {
-      translationCache.delete(wordLower);
+    // 检查是否是扩展上下文失效错误
+    if (error.message && error.message.includes('Extension context invalidated')) {
+      console.log('扩展上下文失效，单词已保存到内存:', word);
+    } else {
+      console.error('保存单词失败:', error);
+      // 只有在非扩展上下文失效的错误时才从内存中移除
+      savedWords.delete(wordLower);
+      savedWordsData.delete(wordLower);
+      if (translationData) {
+        translationCache.delete(wordLower);
+      }
+      throw error; // 重新抛出错误
     }
+  }
+  
+  // 无论存储是否成功，都更新页面高亮
+  try {
+    highlightSavedWords();
+  } catch (error) {
+    console.error('更新高亮失败:', error);
   }
 }
 
 // 删除保存的单词
 async function removeWord(word) {
   const wordLower = word.toLowerCase();
+  
+  // 先从内存中删除
   savedWords.delete(wordLower);
   savedWordsData.delete(wordLower); // 同时删除详细数据
   translationCache.delete(wordLower); // 同时删除翻译缓存
   
+  // 尝试从存储中删除
   try {
     await saveWordsToStorage();
     await saveWordsDataToStorage();
     await saveTranslationCache();
-    highlightSavedWords();
     console.log('删除单词成功:', word);
   } catch (error) {
-    console.error('删除单词失败:', error);
-    // 重新添加到内存，保持一致性
-    savedWords.add(wordLower);
+    // 检查是否是扩展上下文失效错误
+    if (error.message && error.message.includes('Extension context invalidated')) {
+      console.log('扩展上下文失效，单词已从内存中删除:', word);
+    } else {
+      console.error('删除单词失败:', error);
+      // 只有在非扩展上下文失效的错误时才重新添加到内存
+      savedWords.add(wordLower);
+      throw error; // 重新抛出错误
+    }
+  }
+  
+  // 无论存储是否成功，都更新页面高亮
+  try {
+    highlightSavedWords();
+  } catch (error) {
+    console.error('更新高亮失败:', error);
   }
 }
 
@@ -174,44 +248,56 @@ async function saveWordsToStorage() {
     [STORAGE_KEYS.LAST_BACKUP]: Date.now()
   };
   
-  try {
+  const success = await safeStorageOperation(async () => {
     await chrome.storage.local.set(dataToSave);
     
     // 每10个单词创建一次备份
     if (wordsArray.length % 10 === 0) {
       await createBackup();
     }
-  } catch (error) {
-    console.error('保存到存储失败:', error);
-    throw error;
+  }, () => {
+    console.log('扩展上下文失效，单词已保存到内存中，等待扩展恢复后同步');
+  });
+  
+  if (!success) {
+    // 扩展上下文失效时，数据仍保存在内存中
+    console.log('单词已保存到内存，等待扩展上下文恢复');
   }
 }
 
 // 保存翻译缓存
 async function saveTranslationCache() {
-  try {
-    const cacheArray = Array.from(translationCache.entries());
+  const cacheArray = Array.from(translationCache.entries());
+  
+  const success = await safeStorageOperation(async () => {
     await chrome.storage.local.set({
       [STORAGE_KEYS.TRANSLATION_CACHE]: cacheArray
     });
     console.log('翻译缓存保存成功:', translationCache.size, '个单词');
-  } catch (error) {
-    console.error('保存翻译缓存失败:', error);
-    throw error;
+  }, () => {
+    console.log('扩展上下文失效，翻译缓存已保存到内存中');
+  });
+  
+  if (!success) {
+    console.log('翻译缓存已保存到内存，等待扩展上下文恢复');
   }
 }
 
 // 保存单词详细数据
 async function saveWordsDataToStorage() {
-  try {
-    const wordsDataArray = Array.from(savedWordsData.entries());
+  const wordsDataArray = Array.from(savedWordsData.entries());
+  
+  const success = await safeStorageOperation(async () => {
     await chrome.storage.local.set({
       [STORAGE_KEYS.SAVED_WORDS_DATA]: wordsDataArray
     });
     console.log('单词详细数据保存成功:', savedWordsData.size, '个单词');
-  } catch (error) {
-    console.error('保存单词详细数据失败:', error);
-    throw error;
+  }, () => {
+    console.log('扩展上下文失效，单词详细数据已保存到内存中');
+  });
+  
+  if (!success) {
+    console.log('单词详细数据已保存到内存，等待扩展上下文恢复');
   }
 }
 
@@ -906,16 +992,35 @@ function showAudioError(word) {
 async function toggleFavorite(word, button, translationData = null) {
   const isSaved = button.dataset.saved === 'true';
   
-  if (isSaved) {
-    await removeWord(word);
-    button.dataset.saved = 'false';
-    button.querySelector('.lv-favorite-icon').textContent = '🤍';
-    button.querySelector('.lv-favorite-text').textContent = '收藏';
-  } else {
-    await saveWord(word, translationData);
-    button.dataset.saved = 'true';
-    button.querySelector('.lv-favorite-icon').textContent = '❤️';
-    button.querySelector('.lv-favorite-text').textContent = '取消收藏';
+  try {
+    if (isSaved) {
+      await removeWord(word);
+      // 更新UI
+      button.dataset.saved = 'false';
+      button.querySelector('.lv-favorite-icon').textContent = '🤍';
+      button.querySelector('.lv-favorite-text').textContent = '收藏';
+    } else {
+      await saveWord(word, translationData);
+      // 更新UI
+      button.dataset.saved = 'true';
+      button.querySelector('.lv-favorite-icon').textContent = '❤️';
+      button.querySelector('.lv-favorite-text').textContent = '取消收藏';
+    }
+  } catch (error) {
+    // 如果是扩展上下文失效，仍然更新UI，因为数据已保存到内存
+    if (error.message && error.message.includes('Extension context invalidated')) {
+      console.log('扩展上下文失效，但操作已在内存中完成');
+      if (!isSaved) {
+        // 如果是添加收藏，更新UI为已收藏状态
+        button.dataset.saved = 'true';
+        button.querySelector('.lv-favorite-icon').textContent = '❤️';
+        button.querySelector('.lv-favorite-text').textContent = '取消收藏';
+      }
+    } else {
+      console.error('收藏操作失败:', error);
+      // 显示错误提示
+      showErrorMessage('收藏操作失败，请稍后重试');
+    }
   }
 }
 
@@ -1943,3 +2048,82 @@ if (document.readyState === 'loading') {
 } else {
   init();
 } 
+
+// 显示错误消息
+function showErrorMessage(message) {
+  try {
+    // 创建错误提示元素
+    const errorTip = document.createElement('div');
+    errorTip.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ff6b6b;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 10001;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-width: 300px;
+      word-wrap: break-word;
+    `;
+    errorTip.textContent = message;
+    
+    document.body.appendChild(errorTip);
+    
+    // 3秒后自动移除
+    setTimeout(() => {
+      if (errorTip.parentNode) {
+        errorTip.remove();
+      }
+    }, 3000);
+  } catch (error) {
+    console.error('显示错误消息失败:', error);
+  }
+}
+
+// 创建提示框
+
+// 设置扩展上下文恢复检测
+function setupExtensionContextRecovery() {
+  // 定期检查扩展上下文是否恢复
+  let contextCheckInterval = setInterval(async () => {
+    if (isExtensionContextValid()) {
+      console.log('扩展上下文已恢复，尝试同步数据...');
+      
+      try {
+        // 尝试同步内存中的数据到存储
+        await saveWordsToStorage();
+        await saveWordsDataToStorage();
+        await saveTranslationCache();
+        console.log('数据同步成功');
+        
+        // 清除检查间隔
+        clearInterval(contextCheckInterval);
+        contextCheckInterval = null;
+        
+        // 重新设置检查（以防再次失效）
+        setTimeout(() => {
+          if (!contextCheckInterval) {
+            setupExtensionContextRecovery();
+          }
+        }, 30000); // 30秒后重新设置检查
+        
+      } catch (error) {
+        console.log('数据同步失败，继续等待:', error);
+      }
+    }
+  }, 5000); // 每5秒检查一次
+  
+  // 10分钟后停止检查，避免无限循环
+  setTimeout(() => {
+    if (contextCheckInterval) {
+      clearInterval(contextCheckInterval);
+      contextCheckInterval = null;
+      console.log('扩展上下文恢复检测已停止');
+    }
+  }, 600000); // 10分钟
+}
+
+// 加载已保存的单词

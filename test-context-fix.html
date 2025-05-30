@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试扩展上下文失效修复</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.8;
+    }
+    .test-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .test-title {
+      color: #667eea;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .test-description {
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .test-steps {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+    }
+    .step {
+      margin-bottom: 8px;
+    }
+    .step-number {
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .highlight {
+      background: #fff3cd;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+    .success {
+      color: #28a745;
+      font-weight: 500;
+    }
+    .warning {
+      color: #ffc107;
+      font-weight: 500;
+    }
+    .error {
+      color: #dc3545;
+      font-weight: 500;
+    }
+    .test-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px dashed #667eea;
+      margin: 20px 0;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .test-word {
+      background: #e3f2fd;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: 600;
+      color: #1976d2;
+    }
+    .code-block {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      color: #495057;
+      margin: 10px 0;
+    }
+    .reload-button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 10px 5px;
+    }
+    .reload-button:hover {
+      background: #5a6fd8;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 扩展上下文失效修复测试</h1>
+  
+  <div class="test-section">
+    <div class="test-title">📋 修复说明</div>
+    <div class="test-description">
+      本次更新主要解决了<span class="highlight">"Extension context invalidated"</span>错误，该错误通常在扩展重载、更新或长时间运行后出现。现在即使扩展上下文失效，收藏功能仍能正常工作，数据会保存到内存中并在上下文恢复后自动同步。
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">🐛 原始问题</div>
+    <div class="test-description">
+      <strong>错误信息：</strong>
+      <div class="code-block">
+        Error: Extension context invalidated.<br>
+        at saveWordsToStorage (content.js:149:32)<br>
+        at saveWord (content.js:103:11)<br>
+        at toggleFavorite (content.js:886:11)
+      </div>
+      <strong>问题影响：</strong> 用户点击收藏按钮时功能失效，无法保存单词。
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">🔧 修复措施</div>
+    <div class="test-steps">
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>扩展上下文检查</strong> - 添加isExtensionContextValid()函数检测上下文状态
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>安全存储包装器</strong> - safeStorageOperation()自动处理上下文失效
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>智能数据保护</strong> - 上下文失效时数据仍保存到内存
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>自动恢复同步</strong> - 上下文恢复后自动同步内存数据
+      </div>
+      <div class="step">
+        <span class="step-number">5</span>
+        <strong>优雅UI更新</strong> - 即使存储失败UI仍正确更新
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">🧪 测试步骤</div>
+    <div class="test-steps">
+      <div class="step">
+        <span class="step-number">1</span>
+        在下方测试内容中选中英文单词并收藏
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        点击下方按钮重载扩展，模拟上下文失效
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        重载后立即尝试收藏新单词，观察是否正常工作
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        检查浏览器控制台，确认错误处理日志
+      </div>
+      <div class="step">
+        <span class="step-number">5</span>
+        等待5-10秒，观察数据是否自动同步
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">🎮 测试控制</div>
+    <div class="test-description">
+      <button class="reload-button" onclick="reloadExtension()">重载扩展</button>
+      <button class="reload-button" onclick="checkConsole()">检查控制台</button>
+      <button class="reload-button" onclick="testRecovery()">测试恢复机制</button>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">📝 测试内容</div>
+    <div class="test-content">
+      <p>Test the <span class="test-word">extension</span> context invalidation fix. Try to <span class="test-word">favorite</span> these words before and after reloading the extension.</p>
+      
+      <p>Words to test: <span class="test-word">important</span>, <span class="test-word">development</span>, <span class="test-word">intelligent</span>, <span class="test-word">automatic</span>.</p>
+      
+      <p>The <span class="test-word">recovery</span> mechanism should <span class="test-word">synchronize</span> data automatically when the extension context is restored.</p>
+      
+      <p>Additional test words: <span class="test-word">beautiful</span>, <span class="test-word">successful</span>, <span class="test-word">performance</span>, <span class="test-word">reliability</span>.</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">✅ 预期行为</div>
+    <div class="test-steps">
+      <div class="step">
+        <span class="success">✓</span> 扩展重载前收藏功能正常工作
+      </div>
+      <div class="step">
+        <span class="success">✓</span> 扩展重载后立即收藏仍能成功（保存到内存）
+      </div>
+      <div class="step">
+        <span class="success">✓</span> 控制台显示"扩展上下文失效，单词已保存到内存"
+      </div>
+      <div class="step">
+        <span class="success">✓</span> 5-10秒后显示"扩展上下文已恢复，尝试同步数据"
+      </div>
+      <div class="step">
+        <span class="success">✓</span> 数据同步成功，所有收藏的单词都被保存
+      </div>
+      <div class="step">
+        <span class="success">✓</span> UI状态与实际数据保持一致
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">🔍 控制台日志</div>
+    <div class="test-description">
+      正常情况下应该看到以下日志：
+      <div class="code-block">
+        // 扩展重载前<br>
+        保存单词成功: [单词]<br>
+        <br>
+        // 扩展重载后立即收藏<br>
+        扩展上下文失效，单词已保存到内存: [单词]<br>
+        <br>
+        // 几秒后自动恢复<br>
+        扩展上下文已恢复，尝试同步数据...<br>
+        数据同步成功
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">⚠️ 注意事项</div>
+    <div class="test-steps">
+      <div class="step">
+        <span class="warning">!</span> 重载扩展会暂时中断与Chrome存储的连接
+      </div>
+      <div class="step">
+        <span class="warning">!</span> 数据会先保存到内存，然后自动同步到存储
+      </div>
+      <div class="step">
+        <span class="warning">!</span> 恢复检测最多运行10分钟，避免无限循环
+      </div>
+      <div class="step">
+        <span class="warning">!</span> 如果页面刷新，内存中的数据会丢失
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">📈 改进对比</div>
+    <div class="test-description">
+      <strong>v1.7.7 之前：</strong>
+      <ul>
+        <li class="error">❌ 扩展重载后收藏功能完全失效</li>
+        <li class="error">❌ 用户操作丢失，需要重新收藏</li>
+        <li class="error">❌ 错误信息不友好，用户不知道发生了什么</li>
+        <li class="error">❌ 没有恢复机制，需要手动刷新页面</li>
+      </ul>
+      
+      <strong>v1.7.8 现在：</strong>
+      <ul>
+        <li class="success">✅ 扩展重载后功能仍可正常使用</li>
+        <li class="success">✅ 数据智能保护，不会丢失用户操作</li>
+        <li class="success">✅ 友好的状态提示和错误处理</li>
+        <li class="success">✅ 自动恢复和数据同步机制</li>
+        <li class="success">✅ UI状态与数据保持一致</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">📝 版本信息</div>
+    <div class="test-description">
+      <strong>版本：</strong> v1.7.8<br>
+      <strong>更新日期：</strong> 2024-12-19<br>
+      <strong>更新类型：</strong> 核心功能修复<br>
+      <strong>主要修复：</strong> Extension context invalidated 错误
+    </div>
+  </div>
+
+  <script>
+    function reloadExtension() {
+      console.log('模拟扩展重载...');
+      alert('请手动重载扩展：\n1. 打开 chrome://extensions/\n2. 找到"多多记单词"扩展\n3. 点击刷新按钮\n4. 返回此页面测试收藏功能');
+    }
+    
+    function checkConsole() {
+      console.log('=== 扩展上下文测试日志 ===');
+      console.log('请查看上方的日志信息');
+      console.log('正常情况下应该看到扩展上下文相关的日志');
+      alert('请查看浏览器控制台的日志信息');
+    }
+    
+    function testRecovery() {
+      console.log('测试恢复机制...');
+      console.log('如果扩展上下文失效，应该会在5秒内开始恢复检测');
+      alert('恢复机制会自动运行，请观察控制台日志');
+    }
+    
+    // 页面加载时的提示
+    console.log('扩展上下文失效修复测试页面已加载');
+    console.log('请按照页面说明进行测试');
+  </script>
+</body>
+</html> 
