@@ -302,9 +302,6 @@ class KnownWordsManager {
     
     let content = `
       <div class="word-detail">
-        <div class="word-header">
-          <h2>${word}</h2>
-        </div>
     `;
 
     // 发音信息
