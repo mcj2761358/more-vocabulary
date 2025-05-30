@@ -8,7 +8,7 @@ let currentHighlightColor = '#ffeb3b'; // 默认高亮颜色
 let translationCache = new Map(); // 翻译缓存
 
 // 数据版本控制
-const DATA_VERSION = '1.5.1';
+const DATA_VERSION = '1.8.0';
 const STORAGE_KEYS = {
   SAVED_WORDS: 'savedWords',
   SAVED_WORDS_DATA: 'savedWordsData', // 新增：存储单词详细信息
@@ -1905,6 +1905,20 @@ function setupMessageListener() {
       highlightSavedWords();
       
       console.log('content script已同步删除单词:', wordLower);
+      sendResponse({ success: true });
+    } else if (message.type === 'wordMarkedAsKnown') {
+      // 处理单词标记为已认识消息
+      const wordLower = message.word;
+      console.log('收到单词标记为已认识消息:', wordLower);
+      
+      // 从收藏列表中删除（因为已经认识了）
+      savedWords.delete(wordLower);
+      savedWordsData.delete(wordLower);
+      
+      // 重新高亮单词（移除高亮）
+      highlightSavedWords();
+      
+      console.log('content script已同步处理单词标记为已认识:', wordLower);
       sendResponse({ success: true });
     } else if (message.action === 'translateSelectedWord') {
       // 处理右键菜单翻译请求

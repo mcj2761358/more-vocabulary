@@ -1,12 +1,16 @@
 // 弹出页面脚本
 let savedWords = [];
 let savedWordsData = new Map(); // 存储单词详细信息
+let knownWords = []; // 已认识的单词
+let knownWordsData = new Map(); // 已认识单词的详细信息
 let currentHighlightColor = '#ffeb3b'; // 默认高亮颜色
 
 // 存储键名
 const STORAGE_KEYS = {
   SAVED_WORDS: 'savedWords',
   SAVED_WORDS_DATA: 'savedWordsData', // 新增
+  KNOWN_WORDS: 'knownWords', // 已认识的单词
+  KNOWN_WORDS_DATA: 'knownWordsData', // 已认识单词的详细信息
   DATA_VERSION: 'dataVersion',
   BACKUP_DATA: 'backupData',
   LAST_BACKUP: 'lastBackup',
@@ -18,6 +22,8 @@ const STORAGE_KEYS = {
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSavedWords();
   await loadSavedWordsData();
+  await loadKnownWords();
+  await loadKnownWordsData();
   await loadHighlightColor();
   updateUI();
   setupEventListeners();
@@ -56,6 +62,38 @@ async function loadSavedWordsData() {
   }
 }
 
+// 加载已认识的单词
+async function loadKnownWords() {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.KNOWN_WORDS]);
+    knownWords = result[STORAGE_KEYS.KNOWN_WORDS] || [];
+    console.log('弹出页面加载已认识的单词:', knownWords.length, '个');
+  } catch (error) {
+    console.error('加载已认识的单词失败:', error);
+    knownWords = [];
+  }
+}
+
+// 加载已认识单词的详细数据
+async function loadKnownWordsData() {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.KNOWN_WORDS_DATA]);
+    const rawData = result[STORAGE_KEYS.KNOWN_WORDS_DATA] || [];
+    
+    // 如果是数组格式，转换为Map
+    if (Array.isArray(rawData)) {
+      knownWordsData = new Map(rawData);
+    } else {
+      knownWordsData = new Map();
+    }
+    
+    console.log('弹出页面加载已认识单词的详细数据:', knownWordsData.size, '个');
+  } catch (error) {
+    console.error('加载已认识单词的详细数据失败:', error);
+    knownWordsData = new Map();
+  }
+}
+
 // 加载高亮颜色
 async function loadHighlightColor() {
   try {
@@ -72,6 +110,7 @@ async function loadHighlightColor() {
 function updateUI() {
   updateStats();
   updateWordsList();
+  updateKnownWordsList();
   updateActionButtons();
 }
 
@@ -79,8 +118,10 @@ function updateUI() {
 function updateStats() {
   const totalWordsElement = document.getElementById('totalWords');
   const todayWordsElement = document.getElementById('todayWords');
+  const knownWordsElement = document.getElementById('knownWords');
   
   totalWordsElement.textContent = savedWords.length;
+  knownWordsElement.textContent = knownWords.length;
   
   // 计算今日新增单词数量
   const today = new Date();
@@ -126,7 +167,10 @@ function updateWordsList() {
   const wordsHTML = savedWords.map(word => `
     <div class="word-item" data-word="${word}">
       <span class="word-text" data-word="${word}">${word}</span>
-      <button class="delete-btn" data-word="${word}">删除</button>
+      <div class="word-actions">
+        <button class="know-btn" data-word="${word}">认识</button>
+        <button class="delete-btn" data-word="${word}">删除</button>
+      </div>
     </div>
   `).join('');
   
@@ -172,15 +216,102 @@ function updateWordsList() {
       }
     });
   });
+
+  // 为认识按钮添加事件监听器
+  const knowButtons = wordsListElement.querySelectorAll('.know-btn');
+  console.log('找到认识按钮数量:', knowButtons.length);
+  
+  knowButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      console.log('认识按钮被点击');
+      e.preventDefault();
+      e.stopPropagation();
+      const word = button.getAttribute('data-word');
+      console.log('要标记为认识的单词:', word);
+      if (word) {
+        markWordAsKnown(word);
+      } else {
+        console.error('未找到要标记为认识的单词');
+      }
+    });
+  });
+}
+
+// 更新已认识单词列表
+function updateKnownWordsList() {
+  const knownWordsListElement = document.getElementById('knownWordsList');
+  
+  if (knownWords.length === 0) {
+    knownWordsListElement.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🎉</div>
+        <p>还没有认识的单词</p>
+        <p>在收藏列表中点击"认识"按钮来标记已掌握的单词！</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const knownWordsHTML = knownWords.map(word => `
+    <div class="word-item" data-word="${word}">
+      <span class="word-text" data-word="${word}">${word}</span>
+      <button class="delete-btn" data-word="${word}">删除</button>
+    </div>
+  `).join('');
+  
+  knownWordsListElement.innerHTML = knownWordsHTML;
+  
+  // 为单词文本添加鼠标悬停事件监听器
+  const knownWordTexts = knownWordsListElement.querySelectorAll('.word-text');
+  knownWordTexts.forEach(wordElement => {
+    // 鼠标进入时显示详情
+    wordElement.addEventListener('mouseenter', (e) => {
+      const word = wordElement.getAttribute('data-word');
+      if (word) {
+        showWordDetails(word, wordElement);
+      }
+    });
+    
+    // 鼠标离开时延迟隐藏（给用户时间移动到提示框上）
+    wordElement.addEventListener('mouseleave', (e) => {
+      setTimeout(() => {
+        // 检查鼠标是否在提示框上
+        if (window.currentWordTooltip && !window.currentWordTooltip.hasAttribute('data-hover')) {
+          removeWordTooltip();
+        }
+      }, 200); // 200ms延迟，给用户时间移动到提示框
+    });
+  });
+  
+  // 为删除按钮添加事件监听器
+  const knownDeleteButtons = knownWordsListElement.querySelectorAll('.delete-btn');
+  console.log('找到已认识单词的删除按钮数量:', knownDeleteButtons.length);
+  
+  knownDeleteButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      console.log('已认识单词的删除按钮被点击');
+      e.preventDefault();
+      e.stopPropagation();
+      const word = button.getAttribute('data-word');
+      console.log('要删除的已认识单词:', word);
+      if (word) {
+        deleteKnownWord(word);
+      } else {
+        console.error('未找到要删除的已认识单词');
+      }
+    });
+  });
 }
 
 // 更新操作按钮状态
 function updateActionButtons() {
   const clearAllBtn = document.getElementById('clearAllBtn');
   const exportBtn = document.getElementById('exportBtn');
+  const clearKnownBtn = document.getElementById('clearKnownBtn');
   
   clearAllBtn.disabled = savedWords.length === 0;
   exportBtn.disabled = savedWords.length === 0;
+  clearKnownBtn.disabled = knownWords.length === 0;
 }
 
 // 设置事件监听器
@@ -189,11 +320,13 @@ function setupEventListeners() {
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
   const fileInput = document.getElementById('fileInput');
+  const clearKnownBtn = document.getElementById('clearKnownBtn');
   
   clearAllBtn.addEventListener('click', clearAllWords);
   exportBtn.addEventListener('click', exportData);
   importBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', handleFileImport);
+  clearKnownBtn.addEventListener('click', clearAllKnownWords);
   
   // 监听存储变化
   chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -208,6 +341,17 @@ function setupEventListeners() {
       if (changes[STORAGE_KEYS.SAVED_WORDS_DATA]) {
         const rawData = changes[STORAGE_KEYS.SAVED_WORDS_DATA].newValue || [];
         savedWordsData = new Map(rawData);
+        shouldUpdate = true;
+      }
+      
+      if (changes[STORAGE_KEYS.KNOWN_WORDS]) {
+        knownWords = changes[STORAGE_KEYS.KNOWN_WORDS].newValue || [];
+        shouldUpdate = true;
+      }
+      
+      if (changes[STORAGE_KEYS.KNOWN_WORDS_DATA]) {
+        const rawData = changes[STORAGE_KEYS.KNOWN_WORDS_DATA].newValue || [];
+        knownWordsData = new Map(rawData);
         shouldUpdate = true;
       }
       
@@ -283,6 +427,87 @@ async function deleteWord(word) {
   }
 }
 
+// 将单词标记为已认识
+async function markWordAsKnown(word) {
+  console.log('markWordAsKnown函数被调用，单词:', word);
+  
+  try {
+    const wordLower = word.toLowerCase();
+    console.log('准备将单词标记为已认识:', wordLower);
+    
+    // 检查单词是否已经在已认识列表中
+    if (knownWords.some(w => w.toLowerCase() === wordLower)) {
+      showMessage('该单词已经在已认识列表中', 'info');
+      return;
+    }
+    
+    // 从收藏列表中获取单词的详细数据
+    let wordData = null;
+    if (savedWordsData.has(wordLower)) {
+      wordData = savedWordsData.get(wordLower);
+    }
+    
+    // 从收藏列表中移除单词
+    const updatedSavedWords = savedWords.filter(w => w.toLowerCase() !== wordLower);
+    savedWordsData.delete(wordLower);
+    
+    // 添加到已认识列表
+    const updatedKnownWords = [...knownWords, word];
+    
+    // 如果有详细数据，添加到已认识单词的详细数据中，并标记认识时间
+    if (wordData) {
+      wordData.knownTime = Date.now(); // 添加认识时间
+      knownWordsData.set(wordLower, wordData);
+    } else {
+      // 如果没有详细数据，创建基本数据
+      knownWordsData.set(wordLower, {
+        word: word,
+        knownTime: Date.now(),
+        addedTime: Date.now() // 如果没有原始添加时间，使用当前时间
+      });
+    }
+    
+    // 准备要保存的数据
+    const dataToSave = {
+      [STORAGE_KEYS.SAVED_WORDS]: updatedSavedWords,
+      [STORAGE_KEYS.SAVED_WORDS_DATA]: Array.from(savedWordsData.entries()),
+      [STORAGE_KEYS.KNOWN_WORDS]: updatedKnownWords,
+      [STORAGE_KEYS.KNOWN_WORDS_DATA]: Array.from(knownWordsData.entries())
+    };
+    
+    console.log('准备保存的数据:', dataToSave);
+    
+    // 保存到存储
+    await chrome.storage.local.set(dataToSave);
+    
+    // 更新本地状态
+    savedWords = updatedSavedWords;
+    knownWords = updatedKnownWords;
+    
+    // 通知所有标签页的content script更新
+    try {
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, {
+          type: 'wordMarkedAsKnown',
+          word: wordLower
+        }).catch(() => {
+          // 忽略错误，可能是页面没有加载content script
+        });
+      }
+    } catch (error) {
+      console.log('通知content script失败:', error);
+    }
+    
+    updateUI();
+    console.log('单词标记为已认识成功:', word);
+    showMessage(`已将"${word}"标记为认识`, 'success');
+  } catch (error) {
+    console.error('标记单词为已认识失败:', error);
+    showMessage('标记单词失败，请重试', 'error');
+  }
+}
+
 // 清空所有单词
 async function clearAllWords() {
   if (confirm('确定要清空所有收藏的单词吗？此操作不可撤销。')) {
@@ -308,6 +533,68 @@ async function clearAllWords() {
   }
 }
 
+// 删除已认识的单词
+async function deleteKnownWord(word) {
+  console.log('deleteKnownWord函数被调用，单词:', word);
+  
+  try {
+    const wordLower = word.toLowerCase();
+    console.log('准备删除已认识的单词:', wordLower);
+    
+    // 从已认识列表中移除单词
+    const updatedKnownWords = knownWords.filter(w => w.toLowerCase() !== wordLower);
+    console.log('更新后的已认识单词列表:', updatedKnownWords);
+    
+    // 从详细数据Map中移除
+    knownWordsData.delete(wordLower);
+    
+    // 准备要保存的数据
+    const dataToSave = {
+      [STORAGE_KEYS.KNOWN_WORDS]: updatedKnownWords,
+      [STORAGE_KEYS.KNOWN_WORDS_DATA]: Array.from(knownWordsData.entries())
+    };
+    
+    console.log('准备保存的数据:', dataToSave);
+    
+    // 保存到存储
+    await chrome.storage.local.set(dataToSave);
+    
+    // 更新本地状态
+    knownWords = updatedKnownWords;
+    
+    updateUI();
+    console.log('删除已认识单词成功:', word);
+    showMessage(`已删除已认识单词: ${word}`, 'success');
+  } catch (error) {
+    console.error('删除已认识单词失败:', error);
+    showMessage('删除已认识单词失败，请重试', 'error');
+  }
+}
+
+// 清空所有已认识的单词
+async function clearAllKnownWords() {
+  if (confirm('确定要清空所有已认识的单词吗？此操作不可撤销。')) {
+    try {
+      // 清空已认识单词数据
+      const dataToSave = {
+        [STORAGE_KEYS.KNOWN_WORDS]: [],
+        [STORAGE_KEYS.KNOWN_WORDS_DATA]: []
+      };
+      
+      await chrome.storage.local.set(dataToSave);
+      
+      knownWords = [];
+      knownWordsData = new Map();
+      updateUI();
+      console.log('清空所有已认识单词成功');
+      showMessage('已清空所有已认识的单词', 'success');
+    } catch (error) {
+      console.error('清空已认识单词失败:', error);
+      showMessage('清空已认识单词失败，请重试', 'error');
+    }
+  }
+}
+
 // 导出数据
 async function exportData() {
   try {
@@ -315,6 +602,8 @@ async function exportData() {
     const allData = await chrome.storage.local.get([
       STORAGE_KEYS.SAVED_WORDS,
       STORAGE_KEYS.SAVED_WORDS_DATA,
+      STORAGE_KEYS.KNOWN_WORDS,
+      STORAGE_KEYS.KNOWN_WORDS_DATA,
       STORAGE_KEYS.TRANSLATION_CACHE,
       STORAGE_KEYS.HIGHLIGHT_COLOR
     ]);
@@ -322,11 +611,14 @@ async function exportData() {
     const data = {
       words: savedWords,
       wordsData: allData[STORAGE_KEYS.SAVED_WORDS_DATA] || [], // 单词详细数据
+      knownWords: knownWords,
+      knownWordsData: allData[STORAGE_KEYS.KNOWN_WORDS_DATA] || [], // 已认识单词详细数据
       translationCache: allData[STORAGE_KEYS.TRANSLATION_CACHE] || [],
       highlightColor: allData[STORAGE_KEYS.HIGHLIGHT_COLOR] || '#ffeb3b',
-      version: '1.5.1',
+      version: '1.8.0',
       exportTime: new Date().toISOString(),
       count: savedWords.length,
+      knownCount: knownWords.length,
       appName: '多多记单词'
     };
     
@@ -369,9 +661,17 @@ async function handleFileImport(event) {
     const importedWords = data.words.filter(word => typeof word === 'string');
     const mergedWords = [...new Set([...savedWords, ...importedWords])];
     
+    // 处理已认识单词数据
+    let importedKnownWords = [];
+    if (data.knownWords && Array.isArray(data.knownWords)) {
+      importedKnownWords = data.knownWords.filter(word => typeof word === 'string');
+    }
+    const mergedKnownWords = [...new Set([...knownWords, ...importedKnownWords])];
+    
     // 准备要保存的数据
     const dataToSave = {
-      [STORAGE_KEYS.SAVED_WORDS]: mergedWords
+      [STORAGE_KEYS.SAVED_WORDS]: mergedWords,
+      [STORAGE_KEYS.KNOWN_WORDS]: mergedKnownWords
     };
     
     // 导入单词详细数据
@@ -379,6 +679,13 @@ async function handleFileImport(event) {
       dataToSave[STORAGE_KEYS.SAVED_WORDS_DATA] = data.wordsData;
       // 更新本地Map
       savedWordsData = new Map(data.wordsData);
+    }
+    
+    // 导入已认识单词详细数据
+    if (data.knownWordsData && Array.isArray(data.knownWordsData)) {
+      dataToSave[STORAGE_KEYS.KNOWN_WORDS_DATA] = data.knownWordsData;
+      // 更新本地Map
+      knownWordsData = new Map(data.knownWordsData);
     }
     
     // 导入翻译缓存
@@ -395,14 +702,20 @@ async function handleFileImport(event) {
     await chrome.storage.local.set(dataToSave);
     
     savedWords = mergedWords;
+    knownWords = mergedKnownWords;
     updateUI();
     updateColorSelection(); // 更新颜色选择状态
     
     const importedCount = importedWords.length;
+    const importedKnownCount = importedKnownWords.length;
     const cacheCount = data.translationCache ? data.translationCache.length : 0;
-    console.log('数据导入成功:', importedCount, '个新单词，', cacheCount, '个翻译缓存');
+    console.log('数据导入成功:', importedCount, '个新单词，', importedKnownCount, '个已认识单词，', cacheCount, '个翻译缓存');
     
-    showMessage(`数据导入成功！新增 ${importedCount} 个单词`, 'success');
+    let message = `数据导入成功！新增 ${importedCount} 个收藏单词`;
+    if (importedKnownCount > 0) {
+      message += `，${importedKnownCount} 个已认识单词`;
+    }
+    showMessage(message, 'success');
   } catch (error) {
     console.error('数据导入失败:', error);
     showMessage('数据导入失败，请检查文件格式', 'error');

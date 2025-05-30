@@ -126,6 +126,27 @@
       background: #c82333;
     }
 
+    .know-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      margin-right: 5px;
+    }
+
+    .know-btn:hover {
+      background: #218838;
+    }
+
+    .word-actions {
+      display: flex;
+      gap: 5px;
+    }
+
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -615,6 +636,10 @@
         <div class="stat-number" id="todayWords">0</div>
         <div class="stat-label">今日新增</div>
       </div>
+      <div class="stat-item">
+        <div class="stat-number" id="knownWords">0</div>
+        <div class="stat-label">已认识单词</div>
+      </div>
     </div>
 
     <div class="words-section">
@@ -644,6 +669,27 @@
       </div>
       
       <input type="file" id="fileInput" class="file-input" accept=".json">
+    </div>
+
+    <div class="words-section">
+      <div class="section-title">
+        <span>✅</span>
+        <span>已认识的单词</span>
+      </div>
+      
+      <div id="knownWordsList" class="word-list">
+        <div class="empty-state">
+          <div class="empty-icon">🎉</div>
+          <p>还没有认识的单词</p>
+          <p>在收藏列表中点击"认识"按钮来标记已掌握的单词！</p>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="clearKnownBtn" class="action-btn clear-all-btn" disabled>
+          清空已认识
+        </button>
+      </div>
     </div>
 
     <div class="backup-section">
