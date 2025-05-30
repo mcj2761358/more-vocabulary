@@ -29,9 +29,11 @@ class KnownWordsManager {
   }
 
   setupEventListeners() {
-    // 返回按钮
-    document.getElementById('backBtn').addEventListener('click', () => {
-      window.close();
+    // ESC键关闭页面
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.close();
+      }
     });
 
     // 搜索功能
@@ -154,8 +156,6 @@ class KnownWordsManager {
 
   createWordCard(word) {
     const wordData = this.knownWordsData.get(word) || {};
-    const knownTime = wordData.knownTime ? new Date(wordData.knownTime).toLocaleDateString() : '未知';
-    const translation = wordData.translation || '暂无翻译';
     
     return `
       <div class="word-card" data-word="${word}">
@@ -166,12 +166,6 @@ class KnownWordsManager {
               🗑️
             </button>
           </div>
-        </div>
-        <div class="word-meta">
-          认识时间: ${knownTime}
-        </div>
-        <div class="word-preview">
-          ${translation}
         </div>
       </div>
     `;
@@ -304,18 +298,12 @@ class KnownWordsManager {
   }
 
   createWordDetailContent(word, wordData) {
-    const knownTime = wordData.knownTime ? new Date(wordData.knownTime).toLocaleString() : '未知';
-    const translation = wordData.translation || '暂无翻译';
     const pronunciation = wordData.pronunciation || {};
     
     let content = `
       <div class="word-detail">
         <div class="word-header">
           <h2>${word}</h2>
-        </div>
-        
-        <div class="word-info">
-          <p><strong>认识时间:</strong> ${knownTime}</p>
         </div>
     `;
 
@@ -331,12 +319,27 @@ class KnownWordsManager {
       content += `</div>`;
     }
 
-    // 翻译信息
+    // 添加提示文字
     content += `
-        <div class="translation-section">
-          <h4>翻译:</h4>
-          <p>${translation}</p>
+        <div class="known-word-hint" style="
+          background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+          border: 1px solid #ff9800;
+          border-radius: 8px;
+          padding: 16px;
+          margin-top: 20px;
+          text-align: center;
+          color: #e65100;
+          font-size: 14px;
+          line-height: 1.6;
+          box-shadow: 0 2px 4px rgba(255,152,0,0.1);
+        ">
+          <div style="font-size: 16px; margin-bottom: 8px;">🤔</div>
+          <div style="font-weight: 500; margin-bottom: 4px;">已经认识了，还点进来做什么呢？</div>
+          <div>难道又忘了？忘了的话，就删除重新收藏吧。</div>
         </div>
+    `;
+
+    content += `
       </div>
     `;
 

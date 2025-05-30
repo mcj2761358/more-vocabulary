@@ -59,92 +59,20 @@
       color: #667eea;
     }
 
+    .clickable-stat {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .clickable-stat:hover {
+      color: #5a6fd8;
+      transform: scale(1.05);
+    }
+
     .stat-label {
       font-size: 12px;
       color: #6c757d;
       margin-top: 5px;
-    }
-
-    .words-section {
-      margin-top: 20px;
-    }
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #2d3748;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .word-list {
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    .word-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      margin-bottom: 8px;
-      background: #f8f9fa;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-    }
-
-    .word-item:hover {
-      background: #e9ecef;
-      transform: translateY(-1px);
-    }
-
-    .word-text {
-      font-weight: 500;
-      color: #2d3748;
-      cursor: pointer;
-      transition: color 0.2s ease;
-    }
-
-    .word-text:hover {
-      color: #667eea;
-    }
-
-    .delete-btn {
-      background: #dc3545;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-    }
-
-    .delete-btn:hover {
-      background: #c82333;
-    }
-
-    .know-btn {
-      background: #28a745;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-      margin-right: 5px;
-    }
-
-    .know-btn:hover {
-      background: #218838;
-    }
-
-    .word-actions {
-      display: flex;
-      gap: 5px;
     }
 
     .empty-state {
@@ -629,7 +557,7 @@
   <div class="content">
     <div class="stats">
       <div class="stat-item">
-        <div class="stat-number" id="totalWords">0</div>
+        <div class="stat-number clickable-stat" id="totalWords">0</div>
         <div class="stat-label">已收藏单词</div>
       </div>
       <div class="stat-item">
@@ -637,56 +565,24 @@
         <div class="stat-label">今日新增</div>
       </div>
       <div class="stat-item">
-        <div class="stat-number" id="knownWords">0</div>
+        <div class="stat-number clickable-stat" id="knownWords">0</div>
         <div class="stat-label">已认识单词</div>
       </div>
     </div>
 
-    <div class="words-section">
-      <div class="section-title">
-        <span>❤️</span>
-        <span>收藏的单词</span>
-      </div>
-      
-      <div id="wordsList" class="word-list">
-        <div class="empty-state">
-          <div class="empty-icon">📖</div>
-          <p>还没有收藏任何单词</p>
-          <p>选中网页上的英文单词开始学习吧！</p>
-        </div>
-      </div>
-
-      <div class="action-buttons">
-        <button id="clearAllBtn" class="action-btn clear-all-btn" disabled>
-          清空所有
-        </button>
-        <button id="exportBtn" class="action-btn export-btn">
-          导出数据
-        </button>
-        <button id="importBtn" class="action-btn import-btn">
-          导入数据
-        </button>
-      </div>
-      
-      <input type="file" id="fileInput" class="file-input" accept=".json">
+    <div class="action-buttons">
+      <button id="clearAllBtn" class="action-btn clear-all-btn" disabled>
+        清空所有
+      </button>
+      <button id="exportBtn" class="action-btn export-btn">
+        导出数据
+      </button>
+      <button id="importBtn" class="action-btn import-btn">
+        导入数据
+      </button>
     </div>
-
-    <section class="words-section">
-      <div class="section-title">
-        <span>🎓</span>
-        <span>已认识的单词</span>
-      </div>
-      <div class="known-words-summary">
-        <button id="openKnownWordsBtn" class="open-known-words-btn">
-          <span class="known-words-icon">🎓</span>
-          <div class="known-words-info">
-            <div class="known-words-title">查看已认识单词</div>
-            <div class="known-words-count">共 <span id="knownWordsCount">0</span> 个单词</div>
-          </div>
-          <span class="arrow-icon">→</span>
-        </button>
-      </div>
-    </section>
+    
+    <input type="file" id="fileInput" class="file-input" accept=".json">
 
     <div class="backup-section">
       <div class="backup-title">

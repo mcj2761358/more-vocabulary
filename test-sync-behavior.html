@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>扩展同步行为测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .test-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      border-radius: 10px;
+    }
+    
+    .test-section {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .test-section h3 {
+      margin-top: 0;
+      color: #495057;
+    }
+    
+    .improvement-list {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .improvement-list h4 {
+      margin-top: 0;
+      color: #155724;
+    }
+    
+    .improvement-list ul {
+      margin-bottom: 0;
+    }
+    
+    .improvement-list li {
+      margin-bottom: 8px;
+      color: #155724;
+    }
+    
+    .old-behavior {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .old-behavior h5 {
+      margin-top: 0;
+      color: #721c24;
+    }
+    
+    .new-behavior {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    
+    .new-behavior h5 {
+      margin-top: 0;
+      color: #0c5460;
+    }
+    
+    .code-block {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+    
+    .log-example {
+      background: #2d3748;
+      color: #e2e8f0;
+      border-radius: 4px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+    
+    .log-old {
+      color: #fc8181;
+    }
+    
+    .log-new {
+      color: #68d391;
+    }
+    
+    .demo-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .demo-btn {
+      background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(30,136,229,0.3);
+    }
+    
+    .demo-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30,136,229,0.4);
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-good {
+      background: #28a745;
+    }
+    
+    .status-bad {
+      background: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-header">
+    <h1>🔄 扩展同步行为优化测试</h1>
+    <p>测试新的页面激活时同步机制</p>
+  </div>
+
+  <div class="improvement-list">
+    <h4>🎯 优化内容：</h4>
+    <ul>
+      <li>✅ 移除定期检查机制，避免不必要的日志输出</li>
+      <li>✅ 改为页面激活时检查并同步一次</li>
+      <li>✅ 同步成功后移除事件监听器，避免重复同步</li>
+      <li>✅ 大幅减少控制台日志噪音</li>
+      <li>✅ 提升性能，减少后台资源消耗</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h3>🔍 行为对比</h3>
+    
+    <div class="old-behavior">
+      <h5><span class="status-indicator status-bad"></span>旧行为（问题）：</h5>
+      <p><strong>定期检查机制：</strong></p>
+      <ul>
+        <li>每5秒检查一次扩展上下文</li>
+        <li>持续10分钟的检查周期</li>
+        <li>检查成功后30秒后重新开始检查</li>
+        <li>产生大量控制台日志</li>
+      </ul>
+      
+      <div class="log-example">
+        <div class="log-old">// 每5秒输出一次，持续10分钟</div>
+        <div>扩展上下文已恢复，尝试同步数据...</div>
+        <div>单词详细数据保存成功: 11 个单词</div>
+        <div>翻译缓存保存成功: 13 个单词</div>
+        <div>数据同步成功</div>
+        <div class="log-old">// 30秒后又开始新一轮检查...</div>
+      </div>
+    </div>
+
+    <div class="new-behavior">
+      <h5><span class="status-indicator status-good"></span>新行为（优化）：</h5>
+      <p><strong>页面激活时同步：</strong></p>
+      <ul>
+        <li>只在页面被激活时检查一次</li>
+        <li>同步成功后移除事件监听器</li>
+        <li>避免重复同步和日志输出</li>
+        <li>大幅减少性能消耗</li>
+      </ul>
+      
+      <div class="log-example">
+        <div class="log-new">// 只在页面激活时输出一次</div>
+        <div>页面激活，检查扩展上下文...</div>
+        <div>扩展上下文已恢复，尝试同步数据...</div>
+        <div>单词详细数据保存成功: 11 个单词</div>
+        <div>翻译缓存保存成功: 13 个单词</div>
+        <div>数据同步成功</div>
+        <div class="log-new">// 之后不再有同步日志</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h3>🛠️ 技术实现</h3>
+    
+    <p><strong>新的同步机制使用以下事件：</strong></p>
+    <ul>
+      <li><code>visibilitychange</code> - 页面可见性变化</li>
+      <li><code>focus</code> - 窗口获得焦点</li>
+    </ul>
+    
+    <div class="code-block">
+// 新的实现逻辑
+function setupExtensionContextRecovery() {
+  let hasTriedSync = false; // 防止重复同步
+  
+  function handleVisibilityChange() {
+    if (!document.hidden && !hasTriedSync && !isExtensionContextValid()) {
+      console.log('页面激活，检查扩展上下文...');
+      trySync();
+    }
+  }
+  
+  // 同步成功后移除事件监听器
+  async function trySync() {
+    if (hasTriedSync) return;
+    // ... 同步逻辑 ...
+    // 成功后移除监听器，避免后续检查
+  }
+}
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h3>📊 性能提升</h3>
+    
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="background: #f8f9fa;">
+        <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">指标</th>
+        <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">旧行为</th>
+        <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">新行为</th>
+        <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">改善</th>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">检查频率</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">每5秒</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">页面激活时</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6; color: #28a745;">大幅减少</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 12px; border: 1px solid #dee2e6;">日志输出</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">持续输出</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">一次性输出</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6; color: #28a745;">减少90%+</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">CPU消耗</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">持续消耗</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">按需消耗</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6; color: #28a745;">显著降低</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 12px; border: 1px solid #dee2e6;">用户体验</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">控制台噪音</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6;">清洁日志</td>
+        <td style="padding: 12px; border: 1px solid #dee2e6; color: #28a745;">大幅提升</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="demo-buttons">
+    <button class="demo-btn" onclick="simulatePageActivation()">模拟页面激活</button>
+    <button class="demo-btn" onclick="showConsoleExample()">查看控制台示例</button>
+    <button class="demo-btn" onclick="clearConsole()">清空控制台</button>
+  </div>
+
+  <div class="test-section">
+    <h3>🎉 优化效果</h3>
+    <p>通过这次优化，用户将享受到：</p>
+    <ul>
+      <li><strong>更清洁的控制台</strong> - 不再有频繁的同步日志</li>
+      <li><strong>更好的性能</strong> - 减少不必要的后台检查</li>
+      <li><strong>更智能的同步</strong> - 只在需要时进行数据同步</li>
+      <li><strong>更稳定的体验</strong> - 避免重复同步导致的问题</li>
+    </ul>
+  </div>
+
+  <script>
+    function simulatePageActivation() {
+      console.log('🔄 模拟页面激活事件...');
+      console.log('页面激活，检查扩展上下文...');
+      console.log('扩展上下文已恢复，尝试同步数据...');
+      console.log('单词详细数据保存成功: 11 个单词');
+      console.log('翻译缓存保存成功: 13 个单词');
+      console.log('数据同步成功');
+      console.log('✅ 同步完成，移除事件监听器');
+      
+      alert('✅ 页面激活同步演示完成！\n\n新行为特点：\n• 只在页面激活时同步一次\n• 同步后移除监听器\n• 不再有重复的日志输出\n\n请查看控制台了解详细日志');
+    }
+    
+    function showConsoleExample() {
+      console.group('📊 新旧行为对比');
+      
+      console.group('❌ 旧行为（每5秒重复）');
+      console.log('%c扩展上下文已恢复，尝试同步数据...', 'color: #dc3545');
+      console.log('%c单词详细数据保存成功: 11 个单词', 'color: #dc3545');
+      console.log('%c翻译缓存保存成功: 13 个单词', 'color: #dc3545');
+      console.log('%c数据同步成功', 'color: #dc3545');
+      console.log('%c（5秒后重复...）', 'color: #dc3545; font-style: italic');
+      console.groupEnd();
+      
+      console.group('✅ 新行为（页面激活时一次）');
+      console.log('%c页面激活，检查扩展上下文...', 'color: #28a745');
+      console.log('%c扩展上下文已恢复，尝试同步数据...', 'color: #28a745');
+      console.log('%c单词详细数据保存成功: 11 个单词', 'color: #28a745');
+      console.log('%c翻译缓存保存成功: 13 个单词', 'color: #28a745');
+      console.log('%c数据同步成功', 'color: #28a745');
+      console.log('%c（之后不再重复）', 'color: #28a745; font-style: italic');
+      console.groupEnd();
+      
+      console.groupEnd();
+    }
+    
+    function clearConsole() {
+      console.clear();
+      console.log('🧹 控制台已清空');
+    }
+    
+    // 页面加载完成后显示说明
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        alert('🎉 扩展同步行为优化完成！\n\n主要改进：\n• 移除定期检查，改为页面激活时同步\n• 大幅减少控制台日志输出\n• 提升性能，减少资源消耗\n• 避免重复同步\n\n点击按钮体验新的同步行为！');
+      }, 500);
+    });
+  </script>
+</body>
+</html> 

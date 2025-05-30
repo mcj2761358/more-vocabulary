@@ -109,8 +109,6 @@ async function loadHighlightColor() {
 // 更新UI
 function updateUI() {
   updateStats();
-  updateWordsList();
-  updateKnownWordsCount();
   updateActionButtons();
 }
 
@@ -149,102 +147,6 @@ function updateStats() {
   todayWordsElement.textContent = todayCount.toString();
 }
 
-// 更新已认识单词数量显示
-function updateKnownWordsCount() {
-  const knownWordsCountElement = document.getElementById('knownWordsCount');
-  if (knownWordsCountElement) {
-    knownWordsCountElement.textContent = knownWords.length;
-  }
-}
-
-// 更新单词列表
-function updateWordsList() {
-  const wordsListElement = document.getElementById('wordsList');
-  
-  if (savedWords.length === 0) {
-    wordsListElement.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📖</div>
-        <p>还没有收藏任何单词</p>
-        <p>选中网页上的英文单词开始学习吧！</p>
-      </div>
-    `;
-    return;
-  }
-  
-  const wordsHTML = savedWords.map(word => `
-    <div class="word-item" data-word="${word}">
-      <span class="word-text" data-word="${word}">${word}</span>
-      <div class="word-actions">
-        <button class="know-btn" data-word="${word}">认识</button>
-        <button class="delete-btn" data-word="${word}">删除</button>
-      </div>
-    </div>
-  `).join('');
-  
-  wordsListElement.innerHTML = wordsHTML;
-  
-  // 为单词文本添加鼠标悬停事件监听器
-  const wordTexts = wordsListElement.querySelectorAll('.word-text');
-  wordTexts.forEach(wordElement => {
-    // 鼠标进入时显示详情
-    wordElement.addEventListener('mouseenter', (e) => {
-      const word = wordElement.getAttribute('data-word');
-      if (word) {
-        showWordDetails(word, wordElement);
-      }
-    });
-    
-    // 鼠标离开时延迟隐藏（给用户时间移动到提示框上）
-    wordElement.addEventListener('mouseleave', (e) => {
-      setTimeout(() => {
-        // 检查鼠标是否在提示框上
-        if (window.currentWordTooltip && !window.currentWordTooltip.hasAttribute('data-hover')) {
-          removeWordTooltip();
-        }
-      }, 200); // 200ms延迟，给用户时间移动到提示框
-    });
-  });
-  
-  // 为删除按钮添加事件监听器
-  const deleteButtons = wordsListElement.querySelectorAll('.delete-btn');
-  console.log('找到删除按钮数量:', deleteButtons.length);
-  
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-      console.log('删除按钮被点击');
-      e.preventDefault();
-      e.stopPropagation();
-      const word = button.getAttribute('data-word');
-      console.log('要删除的单词:', word);
-      if (word) {
-        deleteWord(word);
-      } else {
-        console.error('未找到要删除的单词');
-      }
-    });
-  });
-
-  // 为认识按钮添加事件监听器
-  const knowButtons = wordsListElement.querySelectorAll('.know-btn');
-  console.log('找到认识按钮数量:', knowButtons.length);
-  
-  knowButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-      console.log('认识按钮被点击');
-      e.preventDefault();
-      e.stopPropagation();
-      const word = button.getAttribute('data-word');
-      console.log('要标记为认识的单词:', word);
-      if (word) {
-        markWordAsKnown(word);
-      } else {
-        console.error('未找到要标记为认识的单词');
-      }
-    });
-  });
-}
-
 // 更新操作按钮状态
 function updateActionButtons() {
   const clearAllBtn = document.getElementById('clearAllBtn');
@@ -260,16 +162,29 @@ function setupEventListeners() {
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
   const fileInput = document.getElementById('fileInput');
-  const openKnownWordsBtn = document.getElementById('openKnownWordsBtn');
+  const knownWordsElement = document.getElementById('knownWords');
+  const totalWordsElement = document.getElementById('totalWords');
   
   clearAllBtn.addEventListener('click', clearAllWords);
   exportBtn.addEventListener('click', exportData);
   importBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', handleFileImport);
   
+  // ESC键关闭弹窗
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      removeWordTooltip();
+    }
+  });
+  
   // 打开已认识单词管理页面
-  if (openKnownWordsBtn) {
-    openKnownWordsBtn.addEventListener('click', openKnownWordsManager);
+  if (knownWordsElement) {
+    knownWordsElement.addEventListener('click', openKnownWordsManager);
+  }
+  
+  // 打开收藏单词管理页面
+  if (totalWordsElement) {
+    totalWordsElement.addEventListener('click', openSavedWordsManager);
   }
   
   // 监听存储变化
@@ -494,6 +409,23 @@ function openKnownWordsManager() {
   }
 }
 
+// 打开收藏单词管理页面
+function openSavedWordsManager() {
+  try {
+    // 创建新窗口显示收藏单词管理页面
+    chrome.windows.create({
+      url: chrome.runtime.getURL('saved-words.html'),
+      type: 'popup',
+      width: 650,
+      height: 750,
+      focused: true
+    });
+  } catch (error) {
+    console.error('打开收藏单词管理页面失败:', error);
+    showMessage('打开管理页面失败，请重试', 'error');
+  }
+}
+
 // 导出数据
 async function exportData() {
   try {
@@ -514,7 +446,7 @@ async function exportData() {
       knownWordsData: allData[STORAGE_KEYS.KNOWN_WORDS_DATA] || [], // 已认识单词详细数据
       translationCache: allData[STORAGE_KEYS.TRANSLATION_CACHE] || [],
       highlightColor: allData[STORAGE_KEYS.HIGHLIGHT_COLOR] || '#ffeb3b',
-      version: '1.9.0',
+      version: '1.10.0',
       exportTime: new Date().toISOString(),
       count: savedWords.length,
       knownCount: knownWords.length,
@@ -1060,254 +992,3 @@ async function getMyMemoryTranslation(word) {
     return null;
   }
 }
-
-// 免费词典API翻译
-async function getDictionaryTranslation(word) {
-  try {
-    const response = await fetch(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`
-    );
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
-    const translations = [];
-    
-    if (Array.isArray(data) && data.length > 0) {
-      const entry = data[0];
-      
-      // 处理音标
-      if (entry.phonetics && entry.phonetics.length > 0) {
-        const phonetic = entry.phonetics.find(p => p.text) || entry.phonetics[0];
-        if (phonetic.text) {
-          translations.push({
-            type: 'phonetic',
-            text: phonetic.text,
-            audio: phonetic.audio || null
-          });
-        }
-      }
-      
-      // 处理词义
-      if (entry.meanings && entry.meanings.length > 0) {
-        entry.meanings.forEach((meaning, index) => {
-          if (index < 3) { // 限制显示前3个词性
-            const partOfSpeech = meaning.partOfSpeech;
-            
-            meaning.definitions.forEach((def, defIndex) => {
-              if (defIndex < 2) { // 每个词性最多显示2个定义
-                translations.push({
-                  type: 'definition',
-                  partOfSpeech: partOfSpeech,
-                  text: def.definition,
-                  example: def.example || null,
-                  synonyms: def.synonyms && def.synonyms.length > 0 ? def.synonyms.slice(0, 3) : null
-                });
-              }
-            });
-          }
-        });
-      }
-    }
-    
-    return translations;
-  } catch (error) {
-    console.error('词典API调用失败:', error);
-    return null;
-  }
-}
-
-// 微软翻译API (简化版本，适用于popup)
-async function getMicrosoftTranslation(word) {
-  try {
-    // 由于popup环境的限制，这里使用简化的翻译逻辑
-    // 实际项目中可以根据需要调整
-    return null; // 暂时返回null，让MyMemory作为主要翻译源
-  } catch (error) {
-    console.error('微软翻译失败:', error);
-    return null;
-  }
-}
-
-// 创建翻译内容HTML - 完全复用content.js的逻辑
-function createTranslationContent(word, translationData, isSaved) {
-  const favoriteIcon = isSaved ? '❤️' : '🤍';
-  const favoriteText = isSaved ? '取消收藏' : '收藏';
-  
-  // 查找音标信息
-  const phoneticItem = translationData.translations.find(t => t.type === 'phonetic');
-  const phoneticText = phoneticItem ? phoneticItem.text : `/${word}/`;
-  
-  // 为美式和英式音标提供不同的显示（如果有的话）
-  const usPhonetic = phoneticText;
-  const ukPhonetic = phoneticText;
-  
-  let contentHTML = `
-    <div class="lv-translation-content">
-      <div class="lv-word-header">
-        <div class="lv-word-title">
-          <div class="lv-word">${word}</div>
-          <button class="lv-favorite-btn" data-saved="${isSaved}">
-            <span class="lv-favorite-icon">${favoriteIcon}</span>
-            <span class="lv-favorite-text">${favoriteText}</span>
-          </button>
-        </div>
-        
-        <!-- 发音按钮区域 -->
-        <div class="lv-pronunciation-section">
-          <div class="lv-pronunciation-row">
-            <span class="lv-pronunciation-phonetic">🇺🇸 ${usPhonetic}</span>
-            <button class="lv-pronunciation-btn lv-pronunciation-us" data-word="${word}" data-accent="us" title="美式发音">
-              <span class="lv-pronunciation-icon">🔊</span>
-              <span class="lv-pronunciation-label">美式</span>
-            </button>
-          </div>
-          <div class="lv-pronunciation-row">
-            <span class="lv-pronunciation-phonetic">🇬🇧 ${ukPhonetic}</span>
-            <button class="lv-pronunciation-btn lv-pronunciation-uk" data-word="${word}" data-accent="uk" title="英式发音">
-              <span class="lv-pronunciation-icon">🔊</span>
-              <span class="lv-pronunciation-label">英式</span>
-            </button>
-          </div>
-        </div>
-      </div>
-  `;
-  
-  // 显示翻译结果
-  const translations = translationData.translations.filter(t => t.type === 'translation');
-  if (translations.length > 0) {
-    contentHTML += `<div class="lv-translations-section">`;
-    contentHTML += `<div class="lv-section-title">翻译</div>`;
-    translations.forEach(translation => {
-      contentHTML += `
-        <div class="lv-translation-item">
-          <span class="lv-translation-text">${translation.text}</span>
-          <span class="lv-translation-source">${translation.source}</span>
-        </div>
-      `;
-    });
-    contentHTML += `</div>`;
-  }
-  
-  // 显示词典定义
-  const definitions = translationData.translations.filter(t => t.type === 'definition');
-  if (definitions.length > 0) {
-    contentHTML += `<div class="lv-definitions-section">`;
-    contentHTML += `<div class="lv-section-title">词典释义</div>`;
-    
-    // 按词性分组
-    const definitionsByPart = {};
-    definitions.forEach(def => {
-      if (!definitionsByPart[def.partOfSpeech]) {
-        definitionsByPart[def.partOfSpeech] = [];
-      }
-      definitionsByPart[def.partOfSpeech].push(def);
-    });
-    
-    Object.entries(definitionsByPart).forEach(([partOfSpeech, defs]) => {
-      contentHTML += `
-        <div class="lv-part-of-speech">
-          <div class="lv-pos-label">${getPartOfSpeechChinese(partOfSpeech)}</div>
-      `;
-      
-      defs.forEach((def, index) => {
-        contentHTML += `
-          <div class="lv-definition-item">
-            <div class="lv-definition-text">${def.text}</div>
-        `;
-        
-        if (def.example) {
-          contentHTML += `
-            <div class="lv-example">
-              <span class="lv-example-label">例句:</span>
-              <span class="lv-example-text">${def.example}</span>
-            </div>
-          `;
-        }
-        
-        if (def.synonyms && def.synonyms.length > 0) {
-          contentHTML += `
-            <div class="lv-synonyms">
-              <span class="lv-synonyms-label">同义词:</span>
-              <span class="lv-synonyms-text">${def.synonyms.join(', ')}</span>
-            </div>
-          `;
-        }
-        
-        contentHTML += `</div>`;
-      });
-      
-      contentHTML += `</div>`;
-    });
-    
-    contentHTML += `</div>`;
-  }
-  
-  contentHTML += `</div>`;
-  
-  return contentHTML;
-}
-
-// 词性中文映射
-function getPartOfSpeechChinese(partOfSpeech) {
-  const posMap = {
-    'noun': '名词',
-    'verb': '动词',
-    'adjective': '形容词',
-    'adverb': '副词',
-    'pronoun': '代词',
-    'preposition': '介词',
-    'conjunction': '连词',
-    'interjection': '感叹词',
-    'determiner': '限定词',
-    'exclamation': '感叹词'
-  };
-  
-  return posMap[partOfSpeech] || partOfSpeech;
-}
-
-// 播放单词发音
-function playWordPronunciation(word, accent = 'us') {
-  try {
-    // 使用浏览器的语音合成API
-    if ('speechSynthesis' in window) {
-      // 停止当前播放
-      speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(word);
-      
-      // 设置语音参数
-      if (accent === 'uk') {
-        utterance.lang = 'en-GB';
-      } else {
-        utterance.lang = 'en-US';
-      }
-      
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      speechSynthesis.speak(utterance);
-    } else {
-      console.log('浏览器不支持语音合成');
-    }
-  } catch (error) {
-    console.error('播放发音失败:', error);
-  }
-}
-
-// 保存单词详细数据到存储
-async function saveWordsDataToStorage() {
-  try {
-    const wordsDataArray = Array.from(savedWordsData.entries());
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.SAVED_WORDS_DATA]: wordsDataArray
-    });
-    console.log('单词详细数据保存成功:', savedWordsData.size, '个单词');
-  } catch (error) {
-    console.error('保存单词详细数据失败:', error);
-    throw error;
-  }
-} 

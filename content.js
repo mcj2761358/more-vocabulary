@@ -8,7 +8,7 @@ let currentHighlightColor = '#ffeb3b'; // 默认高亮颜色
 let translationCache = new Map(); // 翻译缓存
 
 // 数据版本控制
-const DATA_VERSION = '1.9.0';
+const DATA_VERSION = '1.10.0';
 const STORAGE_KEYS = {
   SAVED_WORDS: 'savedWords',
   SAVED_WORDS_DATA: 'savedWordsData', // 新增：存储单词详细信息
@@ -2101,43 +2101,61 @@ function showErrorMessage(message) {
 
 // 设置扩展上下文恢复检测
 function setupExtensionContextRecovery() {
-  // 定期检查扩展上下文是否恢复
-  let contextCheckInterval = setInterval(async () => {
-    if (isExtensionContextValid()) {
-      console.log('扩展上下文已恢复，尝试同步数据...');
-      
-      try {
+  let hasTriedSync = false; // 标记是否已经尝试过同步
+  
+  // 页面可见性变化时检查并同步
+  function handleVisibilityChange() {
+    // 只有当页面变为可见且还没有尝试过同步时才执行
+    if (!document.hidden && !hasTriedSync && !isExtensionContextValid()) {
+      console.log('页面激活，检查扩展上下文...');
+      trySync();
+    }
+  }
+  
+  // 页面焦点变化时检查并同步
+  function handleFocusChange() {
+    // 只有当页面获得焦点且还没有尝试过同步时才执行
+    if (!hasTriedSync && !isExtensionContextValid()) {
+      console.log('页面获得焦点，检查扩展上下文...');
+      trySync();
+    }
+  }
+  
+  // 尝试同步数据
+  async function trySync() {
+    if (hasTriedSync) return; // 避免重复同步
+    
+    try {
+      if (isExtensionContextValid()) {
+        console.log('扩展上下文已恢复，尝试同步数据...');
+        hasTriedSync = true; // 标记已尝试同步
+        
         // 尝试同步内存中的数据到存储
         await saveWordsToStorage();
         await saveWordsDataToStorage();
         await saveTranslationCache();
         console.log('数据同步成功');
         
-        // 清除检查间隔
-        clearInterval(contextCheckInterval);
-        contextCheckInterval = null;
-        
-        // 重新设置检查（以防再次失效）
-        setTimeout(() => {
-          if (!contextCheckInterval) {
-            setupExtensionContextRecovery();
-          }
-        }, 30000); // 30秒后重新设置检查
-        
-      } catch (error) {
-        console.log('数据同步失败，继续等待:', error);
+        // 移除事件监听器，避免后续不必要的检查
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleFocusChange);
       }
+    } catch (error) {
+      console.log('数据同步失败:', error);
+      hasTriedSync = false; // 重置标记，允许下次尝试
     }
-  }, 5000); // 每5秒检查一次
+  }
   
-  // 10分钟后停止检查，避免无限循环
-  setTimeout(() => {
-    if (contextCheckInterval) {
-      clearInterval(contextCheckInterval);
-      contextCheckInterval = null;
-      console.log('扩展上下文恢复检测已停止');
-    }
-  }, 600000); // 10分钟
+  // 监听页面可见性变化
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  // 监听窗口焦点变化
+  window.addEventListener('focus', handleFocusChange);
+  
+  // 页面加载时立即检查一次（如果扩展上下文无效）
+  if (!isExtensionContextValid()) {
+    console.log('页面加载时检测到扩展上下文无效，等待页面激活时同步');
+  }
 }
 
 // 加载已保存的单词

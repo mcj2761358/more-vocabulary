@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>已认识单词管理</title>
+  <title>收藏单词管理</title>
   <link rel="stylesheet" href="popup.css">
-  <link rel="stylesheet" href="known-words.css">
+  <link rel="stylesheet" href="saved-words.css">
 </head>
 <body>
   <div class="saved-words-container">
     <!-- 头部 -->
     <div class="header">
       <h1 class="page-title">
-        <span class="title-icon">🎓</span>
-        已认识单词
+        <span class="title-icon">❤️</span>
+        收藏的单词
       </h1>
       <div class="header-stats">
-        <span id="totalKnownWords">0</span> 个单词
+        <span id="totalSavedWords">0</span> 个单词
       </div>
     </div>
 
@@ -35,7 +35,7 @@
           <option value="100">每页 100 个</option>
         </select>
         
-        <button id="clearAllKnownBtn" class="clear-all-btn" disabled>
+        <button id="clearAllSavedBtn" class="clear-all-btn" disabled>
           <span class="clear-icon">🗑️</span>
           清空全部
         </button>
@@ -50,9 +50,9 @@
       
       <!-- 空状态 -->
       <div id="emptyState" class="empty-state" style="display: none;">
-        <div class="empty-icon">🎉</div>
-        <h3>还没有认识的单词</h3>
-        <p>在收藏列表中点击"认识"按钮来标记已掌握的单词！</p>
+        <div class="empty-icon">📖</div>
+        <h3>还没有收藏任何单词</h3>
+        <p>选中网页上的英文单词开始学习吧！</p>
       </div>
 
       <!-- 搜索无结果状态 -->
@@ -85,6 +85,17 @@
       <div class="footer-stats">
         <span id="currentPageStats">显示 0 个单词</span>
       </div>
+      
+      <div class="footer-actions">
+        <button id="exportBtn" class="action-btn export-btn">
+          <span class="action-icon">📤</span>
+          导出数据
+        </button>
+        <button id="importBtn" class="action-btn import-btn">
+          <span class="action-icon">📥</span>
+          导入数据
+        </button>
+      </div>
     </div>
   </div>
 
@@ -101,6 +112,9 @@
     </div>
   </div>
 
-  <script src="known-words.js"></script>
+  <!-- 文件输入 -->
+  <input type="file" id="fileInput" style="display: none;" accept=".json">
+
+  <script src="saved-words.js"></script>
 </body>
 </html> 
