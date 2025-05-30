@@ -125,12 +125,34 @@ function updateWordsList() {
   
   const wordsHTML = savedWords.map(word => `
     <div class="word-item" data-word="${word}">
-      <span class="word-text">${word}</span>
+      <span class="word-text" data-word="${word}">${word}</span>
       <button class="delete-btn" data-word="${word}">删除</button>
     </div>
   `).join('');
   
   wordsListElement.innerHTML = wordsHTML;
+  
+  // 为单词文本添加鼠标悬停事件监听器
+  const wordTexts = wordsListElement.querySelectorAll('.word-text');
+  wordTexts.forEach(wordElement => {
+    // 鼠标进入时显示详情
+    wordElement.addEventListener('mouseenter', (e) => {
+      const word = wordElement.getAttribute('data-word');
+      if (word) {
+        showWordDetails(word, wordElement);
+      }
+    });
+    
+    // 鼠标离开时延迟隐藏（给用户时间移动到提示框上）
+    wordElement.addEventListener('mouseleave', (e) => {
+      setTimeout(() => {
+        // 检查鼠标是否在提示框上
+        if (window.currentWordTooltip && !window.currentWordTooltip.hasAttribute('data-hover')) {
+          removeWordTooltip();
+        }
+      }, 200); // 200ms延迟，给用户时间移动到提示框
+    });
+  });
   
   // 为删除按钮添加事件监听器
   const deleteButtons = wordsListElement.querySelectorAll('.delete-btn');
@@ -508,5 +530,572 @@ function updateColorSelection() {
   
   if (!isPresetColor) {
     colorOptions.forEach(option => option.classList.remove('active'));
+  }
+}
+
+// 显示单词详细信息
+async function showWordDetails(word, element) {
+  try {
+    const wordLower = word.toLowerCase();
+    
+    // 从保存的数据中获取翻译信息
+    let translationData = null;
+    if (savedWordsData.has(wordLower)) {
+      const wordData = savedWordsData.get(wordLower);
+      translationData = wordData.translationData;
+    }
+    
+    // 如果没有翻译数据，尝试获取
+    if (!translationData) {
+      // 显示加载状态
+      showWordTooltip(word, element, createLoadingContent(word));
+      
+      // 获取翻译数据
+      translationData = await translateWord(word);
+      
+      // 更新保存的数据
+      if (savedWordsData.has(wordLower)) {
+        const wordData = savedWordsData.get(wordLower);
+        wordData.translationData = translationData;
+        await saveWordsDataToStorage();
+      }
+    }
+    
+    if (translationData) {
+      const tooltipContent = createTranslationContent(word, translationData, true);
+      showWordTooltip(word, element, tooltipContent);
+    } else {
+      showWordTooltip(word, element, createErrorContent(word));
+    }
+  } catch (error) {
+    console.error('显示单词详情失败:', error);
+    showWordTooltip(word, element, createErrorContent(word));
+  }
+}
+
+// 显示单词提示框
+function showWordTooltip(word, element, content) {
+  // 移除现有的提示框
+  removeWordTooltip();
+  
+  const tooltip = document.createElement('div');
+  tooltip.className = 'lv-tooltip';
+  tooltip.innerHTML = content;
+  
+  // 先添加到页面以获取尺寸
+  tooltip.style.position = 'fixed';
+  tooltip.style.visibility = 'hidden';
+  document.body.appendChild(tooltip);
+  
+  // 获取元素和窗口尺寸
+  const rect = element.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+  
+  // 计算最佳位置
+  let left = rect.left;
+  let top = rect.bottom + 5;
+  
+  // 水平位置调整
+  if (left + tooltipRect.width > windowWidth - 20) {
+    left = windowWidth - tooltipRect.width - 20;
+  }
+  if (left < 20) {
+    left = 20;
+  }
+  
+  // 垂直位置调整
+  if (top + tooltipRect.height > windowHeight - 20) {
+    // 如果下方空间不够，尝试放在上方
+    const topPosition = rect.top - tooltipRect.height - 5;
+    if (topPosition > 20) {
+      top = topPosition;
+    } else {
+      // 如果上下都不够，放在屏幕中央并限制高度
+      top = 20;
+      tooltip.style.maxHeight = `${windowHeight - 40}px`;
+    }
+  }
+  
+  // 应用最终位置
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+  tooltip.style.visibility = 'visible';
+  tooltip.style.zIndex = '10000';
+  
+  // 添加提示框的鼠标事件监听器
+  tooltip.addEventListener('mouseenter', () => {
+    // 鼠标进入提示框时，确保不会被隐藏
+    tooltip.setAttribute('data-hover', 'true');
+  });
+  
+  tooltip.addEventListener('mouseleave', () => {
+    // 鼠标离开提示框时，延迟隐藏
+    tooltip.removeAttribute('data-hover');
+    setTimeout(() => {
+      // 检查是否还在悬停状态
+      if (!tooltip.hasAttribute('data-hover')) {
+        removeWordTooltip();
+      }
+    }, 200);
+  });
+  
+  // 添加事件监听器
+  setupTooltipEventListeners(tooltip, word);
+  
+  // 保存引用
+  window.currentWordTooltip = tooltip;
+}
+
+// 移除单词提示框
+function removeWordTooltip() {
+  if (window.currentWordTooltip) {
+    window.currentWordTooltip.remove();
+    window.currentWordTooltip = null;
+  }
+}
+
+// 设置提示框事件监听器
+function setupTooltipEventListeners(tooltip, word) {
+  // 收藏按钮事件
+  const favoriteBtn = tooltip.querySelector('.lv-favorite-btn');
+  if (favoriteBtn) {
+    favoriteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      // 在popup中，单词已经是收藏状态，点击应该是取消收藏
+      await deleteWord(word);
+      removeWordTooltip();
+    });
+  }
+  
+  // 发音按钮事件
+  const pronunciationButtons = tooltip.querySelectorAll('.lv-pronunciation-btn');
+  pronunciationButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const word = btn.dataset.word;
+      const accent = btn.dataset.accent;
+      
+      // 添加点击效果
+      btn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        btn.style.transform = 'scale(1)';
+      }, 150);
+      
+      playWordPronunciation(word, accent);
+    });
+  });
+}
+
+// 创建加载内容
+function createLoadingContent(word) {
+  return `
+    <div class="lv-loading-content">
+      <div class="lv-loading-spinner"></div>
+      <div class="lv-loading-text">正在加载 "${word}" 的详细信息...</div>
+    </div>
+  `;
+}
+
+// 创建错误内容
+function createErrorContent(word) {
+  return `
+    <div class="lv-error-content">
+      <div class="lv-error-icon">❌</div>
+      <div class="lv-error-text">无法加载 "${word}" 的详细信息</div>
+    </div>
+  `;
+}
+
+// 翻译单词 - 获取丰富的翻译结果，复用content.js的逻辑
+async function translateWord(word) {
+  try {
+    const wordLower = word.toLowerCase();
+    
+    // 并行调用词典API
+    const dictionaryResult = await Promise.allSettled([
+      getDictionaryTranslation(word)
+    ]);
+
+    // 整合翻译结果
+    const translations = [];
+    
+    // 优先尝试微软翻译
+    let primaryTranslation = null;
+    try {
+      primaryTranslation = await getMicrosoftTranslation(word);
+      if (primaryTranslation) {
+        translations.push({
+          type: 'translation',
+          text: primaryTranslation,
+          source: 'Microsoft'
+        });
+      }
+    } catch (error) {
+      console.log('微软翻译失败，尝试MyMemory:', error);
+    }
+    
+    // 如果微软翻译失败，使用MyMemory作为备用
+    if (!primaryTranslation) {
+      try {
+        const myMemoryResult = await getMyMemoryTranslation(word);
+        if (myMemoryResult) {
+          translations.push({
+            type: 'translation',
+            text: myMemoryResult,
+            source: 'MyMemory'
+          });
+        }
+      } catch (error) {
+        console.log('MyMemory翻译也失败:', error);
+      }
+    }
+
+    // 词典翻译结果
+    if (dictionaryResult[0].status === 'fulfilled' && dictionaryResult[0].value) {
+      translations.push(...dictionaryResult[0].value);
+    }
+
+    // 如果没有获取到任何翻译，使用备用方案
+    if (translations.filter(t => t.type === 'translation').length === 0) {
+      translations.push({
+        type: 'translation',
+        text: '翻译获取失败',
+        source: 'Fallback'
+      });
+    }
+
+    // 如果没有音标，添加默认音标
+    if (!translations.find(t => t.type === 'phonetic')) {
+      translations.push({
+        type: 'phonetic',
+        text: `/${word}/`
+      });
+    }
+
+    const translationData = {
+      word: word,
+      translations: translations,
+      hasMultiple: translations.length > 1,
+      timestamp: Date.now()
+    };
+
+    return translationData;
+
+  } catch (error) {
+    console.error('翻译失败:', error);
+    return {
+      word: word,
+      translations: [
+        {
+          type: 'translation',
+          text: '翻译获取失败',
+          source: 'Error'
+        },
+        {
+          type: 'phonetic',
+          text: `/${word}/`
+        }
+      ],
+      hasMultiple: false,
+      timestamp: Date.now()
+    };
+  }
+}
+
+// MyMemory翻译API
+async function getMyMemoryTranslation(word) {
+  try {
+    const response = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh`
+    );
+    
+    if (!response.ok) {
+      throw new Error('MyMemory API请求失败');
+    }
+    
+    const data = await response.json();
+    
+    if (data.responseStatus === 200 && data.responseData) {
+      const mainTranslation = data.responseData.translatedText;
+      const translations = [mainTranslation];
+      
+      // 尝试从matches中获取更多高质量翻译
+      if (data.matches && Array.isArray(data.matches)) {
+        const additionalTranslations = data.matches
+          .filter(match => match.quality >= 80) // 只取高质量翻译
+          .map(match => match.translation)
+          .filter(translation => 
+            translation && 
+            translation.trim() && 
+            translation !== mainTranslation &&
+            translation.length < 20 // 避免过长的翻译
+          )
+          .slice(0, 2); // 最多取2个额外翻译
+        
+        translations.push(...additionalTranslations);
+      }
+      
+      // 去重并返回
+      const uniqueTranslations = [...new Set(translations)];
+      return uniqueTranslations.length > 1 ? uniqueTranslations.join('，') : uniqueTranslations[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('MyMemory翻译失败:', error);
+    return null;
+  }
+}
+
+// 免费词典API翻译
+async function getDictionaryTranslation(word) {
+  try {
+    const response = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`
+    );
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    const translations = [];
+    
+    if (Array.isArray(data) && data.length > 0) {
+      const entry = data[0];
+      
+      // 处理音标
+      if (entry.phonetics && entry.phonetics.length > 0) {
+        const phonetic = entry.phonetics.find(p => p.text) || entry.phonetics[0];
+        if (phonetic.text) {
+          translations.push({
+            type: 'phonetic',
+            text: phonetic.text,
+            audio: phonetic.audio || null
+          });
+        }
+      }
+      
+      // 处理词义
+      if (entry.meanings && entry.meanings.length > 0) {
+        entry.meanings.forEach((meaning, index) => {
+          if (index < 3) { // 限制显示前3个词性
+            const partOfSpeech = meaning.partOfSpeech;
+            
+            meaning.definitions.forEach((def, defIndex) => {
+              if (defIndex < 2) { // 每个词性最多显示2个定义
+                translations.push({
+                  type: 'definition',
+                  partOfSpeech: partOfSpeech,
+                  text: def.definition,
+                  example: def.example || null,
+                  synonyms: def.synonyms && def.synonyms.length > 0 ? def.synonyms.slice(0, 3) : null
+                });
+              }
+            });
+          }
+        });
+      }
+    }
+    
+    return translations;
+  } catch (error) {
+    console.error('词典API调用失败:', error);
+    return null;
+  }
+}
+
+// 微软翻译API (简化版本，适用于popup)
+async function getMicrosoftTranslation(word) {
+  try {
+    // 由于popup环境的限制，这里使用简化的翻译逻辑
+    // 实际项目中可以根据需要调整
+    return null; // 暂时返回null，让MyMemory作为主要翻译源
+  } catch (error) {
+    console.error('微软翻译失败:', error);
+    return null;
+  }
+}
+
+// 创建翻译内容HTML - 完全复用content.js的逻辑
+function createTranslationContent(word, translationData, isSaved) {
+  const favoriteIcon = isSaved ? '❤️' : '🤍';
+  const favoriteText = isSaved ? '取消收藏' : '收藏';
+  
+  // 查找音标信息
+  const phoneticItem = translationData.translations.find(t => t.type === 'phonetic');
+  const phoneticText = phoneticItem ? phoneticItem.text : `/${word}/`;
+  
+  // 为美式和英式音标提供不同的显示（如果有的话）
+  const usPhonetic = phoneticText;
+  const ukPhonetic = phoneticText;
+  
+  let contentHTML = `
+    <div class="lv-translation-content">
+      <div class="lv-word-header">
+        <div class="lv-word-title">
+          <div class="lv-word">${word}</div>
+          <button class="lv-favorite-btn" data-saved="${isSaved}">
+            <span class="lv-favorite-icon">${favoriteIcon}</span>
+            <span class="lv-favorite-text">${favoriteText}</span>
+          </button>
+        </div>
+        
+        <!-- 发音按钮区域 -->
+        <div class="lv-pronunciation-section">
+          <div class="lv-pronunciation-row">
+            <span class="lv-pronunciation-phonetic">🇺🇸 ${usPhonetic}</span>
+            <button class="lv-pronunciation-btn lv-pronunciation-us" data-word="${word}" data-accent="us" title="美式发音">
+              <span class="lv-pronunciation-icon">🔊</span>
+              <span class="lv-pronunciation-label">美式</span>
+            </button>
+          </div>
+          <div class="lv-pronunciation-row">
+            <span class="lv-pronunciation-phonetic">🇬🇧 ${ukPhonetic}</span>
+            <button class="lv-pronunciation-btn lv-pronunciation-uk" data-word="${word}" data-accent="uk" title="英式发音">
+              <span class="lv-pronunciation-icon">🔊</span>
+              <span class="lv-pronunciation-label">英式</span>
+            </button>
+          </div>
+        </div>
+      </div>
+  `;
+  
+  // 显示翻译结果
+  const translations = translationData.translations.filter(t => t.type === 'translation');
+  if (translations.length > 0) {
+    contentHTML += `<div class="lv-translations-section">`;
+    contentHTML += `<div class="lv-section-title">翻译</div>`;
+    translations.forEach(translation => {
+      contentHTML += `
+        <div class="lv-translation-item">
+          <span class="lv-translation-text">${translation.text}</span>
+          <span class="lv-translation-source">${translation.source}</span>
+        </div>
+      `;
+    });
+    contentHTML += `</div>`;
+  }
+  
+  // 显示词典定义
+  const definitions = translationData.translations.filter(t => t.type === 'definition');
+  if (definitions.length > 0) {
+    contentHTML += `<div class="lv-definitions-section">`;
+    contentHTML += `<div class="lv-section-title">词典释义</div>`;
+    
+    // 按词性分组
+    const definitionsByPart = {};
+    definitions.forEach(def => {
+      if (!definitionsByPart[def.partOfSpeech]) {
+        definitionsByPart[def.partOfSpeech] = [];
+      }
+      definitionsByPart[def.partOfSpeech].push(def);
+    });
+    
+    Object.entries(definitionsByPart).forEach(([partOfSpeech, defs]) => {
+      contentHTML += `
+        <div class="lv-part-of-speech">
+          <div class="lv-pos-label">${getPartOfSpeechChinese(partOfSpeech)}</div>
+      `;
+      
+      defs.forEach((def, index) => {
+        contentHTML += `
+          <div class="lv-definition-item">
+            <div class="lv-definition-text">${def.text}</div>
+        `;
+        
+        if (def.example) {
+          contentHTML += `
+            <div class="lv-example">
+              <span class="lv-example-label">例句:</span>
+              <span class="lv-example-text">${def.example}</span>
+            </div>
+          `;
+        }
+        
+        if (def.synonyms && def.synonyms.length > 0) {
+          contentHTML += `
+            <div class="lv-synonyms">
+              <span class="lv-synonyms-label">同义词:</span>
+              <span class="lv-synonyms-text">${def.synonyms.join(', ')}</span>
+            </div>
+          `;
+        }
+        
+        contentHTML += `</div>`;
+      });
+      
+      contentHTML += `</div>`;
+    });
+    
+    contentHTML += `</div>`;
+  }
+  
+  contentHTML += `</div>`;
+  
+  return contentHTML;
+}
+
+// 词性中文映射
+function getPartOfSpeechChinese(partOfSpeech) {
+  const posMap = {
+    'noun': '名词',
+    'verb': '动词',
+    'adjective': '形容词',
+    'adverb': '副词',
+    'pronoun': '代词',
+    'preposition': '介词',
+    'conjunction': '连词',
+    'interjection': '感叹词',
+    'determiner': '限定词',
+    'exclamation': '感叹词'
+  };
+  
+  return posMap[partOfSpeech] || partOfSpeech;
+}
+
+// 播放单词发音
+function playWordPronunciation(word, accent = 'us') {
+  try {
+    // 使用浏览器的语音合成API
+    if ('speechSynthesis' in window) {
+      // 停止当前播放
+      speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(word);
+      
+      // 设置语音参数
+      if (accent === 'uk') {
+        utterance.lang = 'en-GB';
+      } else {
+        utterance.lang = 'en-US';
+      }
+      
+      utterance.rate = 0.8;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      
+      speechSynthesis.speak(utterance);
+    } else {
+      console.log('浏览器不支持语音合成');
+    }
+  } catch (error) {
+    console.error('播放发音失败:', error);
+  }
+}
+
+// 保存单词详细数据到存储
+async function saveWordsDataToStorage() {
+  try {
+    const wordsDataArray = Array.from(savedWordsData.entries());
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.SAVED_WORDS_DATA]: wordsDataArray
+    });
+    console.log('单词详细数据保存成功:', savedWordsData.size, '个单词');
+  } catch (error) {
+    console.error('保存单词详细数据失败:', error);
+    throw error;
   }
 } 

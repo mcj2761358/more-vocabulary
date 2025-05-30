@@ -32,6 +32,8 @@
   padding: 0;
   max-width: 400px;
   min-width: 280px;
+  max-height: 80vh;
+  overflow-y: auto;
   animation: lv-slideUp 0.3s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -445,6 +447,8 @@
   padding: 0 !important;
   max-width: 400px !important;
   min-width: 280px !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
   animation: lv-slideUp 0.3s ease !important;
 }
 
@@ -647,4 +651,23 @@
   color: #6c757d;
   margin: 8px 0;
   font-weight: bold;
+}
+
+/* 滚动条美化 */
+.lv-tooltip::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lv-tooltip::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.lv-tooltip::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.lv-tooltip::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 } 

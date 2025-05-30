@@ -21,16 +21,45 @@ const STORAGE_KEYS = {
 
 // 初始化
 async function init() {
-  await loadSavedWords();
-  await loadSavedWordsData();
-  await loadHighlightColor();
-  await loadTranslationCache();
-  await migrateDataIfNeeded();
-  await createBackup();
-  highlightSavedWords();
-  setupTextSelection();
-  setupWordHover();
-  setupMessageListener();
+  try {
+    console.log('多多记单词扩展开始初始化...');
+    
+    await loadSavedWords();
+    await loadSavedWordsData();
+    await loadHighlightColor();
+    await loadTranslationCache();
+    await migrateDataIfNeeded();
+    await createBackup();
+    
+    // 分别处理各个功能，避免一个失败影响其他
+    try {
+      highlightSavedWords();
+    } catch (error) {
+      console.error('高亮单词初始化失败:', error);
+    }
+    
+    try {
+      setupTextSelection();
+    } catch (error) {
+      console.error('文本选择功能初始化失败:', error);
+    }
+    
+    try {
+      setupWordHover();
+    } catch (error) {
+      console.error('单词悬停功能初始化失败:', error);
+    }
+    
+    try {
+      setupMessageListener();
+    } catch (error) {
+      console.error('消息监听器初始化失败:', error);
+    }
+    
+    console.log('多多记单词扩展初始化完成');
+  } catch (error) {
+    console.error('多多记单词扩展初始化失败:', error);
+  }
 }
 
 // 加载已保存的单词
@@ -892,40 +921,106 @@ async function toggleFavorite(word, button, translationData = null) {
 
 // 创建提示框
 function createTooltip(content, rect) {
-  removeTooltip();
-  
-  tooltipElement = document.createElement('div');
-  tooltipElement.className = 'lv-tooltip';
-  tooltipElement.innerHTML = content;
-  
-  // 定位提示框
-  tooltipElement.style.left = `${rect.left + window.scrollX}px`;
-  tooltipElement.style.top = `${rect.bottom + window.scrollY + 5}px`;
-  
-  document.body.appendChild(tooltipElement);
-  
-  // 点击其他地方关闭提示框
-  setTimeout(() => {
-    document.addEventListener('click', handleClickOutside);
-  }, 100);
-  
-  return tooltipElement;
-}
-
-// 处理点击外部关闭提示框
-function handleClickOutside(event) {
-  if (tooltipElement && !tooltipElement.contains(event.target)) {
+  try {
+    // 安全检查：确保参数有效
+    if (!content || !rect) {
+      console.warn('createTooltip: 无效的参数');
+      return null;
+    }
+    
     removeTooltip();
-    document.removeEventListener('click', handleClickOutside);
+    
+    tooltipElement = document.createElement('div');
+    tooltipElement.className = 'lv-tooltip';
+    tooltipElement.innerHTML = content;
+    
+    // 安全检查：确保document.body存在
+    if (!document.body) {
+      console.warn('createTooltip: document.body不存在');
+      return null;
+    }
+    
+    // 先添加到页面以获取尺寸
+    tooltipElement.style.position = 'absolute';
+    tooltipElement.style.visibility = 'hidden';
+    document.body.appendChild(tooltipElement);
+    
+    // 获取弹窗和窗口尺寸
+    const tooltipRect = tooltipElement.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // 计算最佳位置
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 5;
+    
+    // 水平位置调整
+    if (left + tooltipRect.width > windowWidth - 20) {
+      left = windowWidth - tooltipRect.width - 20 + window.scrollX;
+    }
+    if (left < 20 + window.scrollX) {
+      left = 20 + window.scrollX;
+    }
+    
+    // 垂直位置调整
+    const tooltipBottom = top - window.scrollY + tooltipRect.height;
+    if (tooltipBottom > windowHeight - 20) {
+      // 如果下方空间不够，尝试放在上方
+      const topPosition = rect.top + window.scrollY - tooltipRect.height - 5;
+      if (topPosition - window.scrollY > 20) {
+        top = topPosition;
+      } else {
+        // 如果上下都不够，限制高度并启用滚动
+        top = 20 + window.scrollY;
+        const maxHeight = windowHeight - 40;
+        tooltipElement.style.maxHeight = `${maxHeight}px`;
+      }
+    }
+    
+    // 应用最终位置
+    tooltipElement.style.left = `${left}px`;
+    tooltipElement.style.top = `${top}px`;
+    tooltipElement.style.visibility = 'visible';
+    
+    // 添加提示框的鼠标事件监听器
+    tooltipElement.addEventListener('mouseenter', () => {
+      // 鼠标进入提示框时，确保不会被隐藏
+      if (tooltipElement) {
+        tooltipElement.setAttribute('data-hover', 'true');
+      }
+    });
+    
+    tooltipElement.addEventListener('mouseleave', () => {
+      // 鼠标离开提示框时，延迟隐藏
+      if (tooltipElement) {
+        tooltipElement.removeAttribute('data-hover');
+        setTimeout(() => {
+          // 检查是否还在悬停状态
+          if (!tooltipElement || !tooltipElement.hasAttribute('data-hover')) {
+            removeTooltip();
+          }
+        }, 200);
+      }
+    });
+    
+    return tooltipElement;
+  } catch (error) {
+    console.error('createTooltip错误:', error);
+    return null;
   }
 }
 
 // 移除提示框
 function removeTooltip() {
-  if (tooltipElement) {
-    tooltipElement.remove();
+  try {
+    if (tooltipElement && tooltipElement.parentNode) {
+      tooltipElement.remove();
+      tooltipElement = null;
+    }
+  } catch (error) {
+    console.error('removeTooltip错误:', error);
+    // 强制重置tooltipElement
     tooltipElement = null;
-    document.removeEventListener('click', handleClickOutside);
   }
 }
 
@@ -1516,31 +1611,57 @@ function setupWordHover() {
 
 // 处理单词悬停
 function handleWordHover(event) {
-  const target = event.target;
-  if (target.classList && target.classList.contains('lv-highlighted-word')) {
-    const word = target.dataset.word;
-    if (word && !tooltipElement) {
-      showWordTooltip(word, target);
+  try {
+    const target = event.target;
+    
+    // 安全检查：确保target存在且有效
+    if (!target || !target.classList || !target.dataset) {
+      return;
     }
+    
+    if (target.classList.contains('lv-highlighted-word')) {
+      const word = target.dataset.word;
+      if (word && !tooltipElement) {
+        showWordTooltip(word, target);
+      }
+    }
+  } catch (error) {
+    console.error('handleWordHover错误:', error);
   }
 }
 
 // 处理单词点击
 function handleWordClick(event) {
-  const target = event.target;
-  if (target.classList && target.classList.contains('lv-highlighted-word')) {
-    event.preventDefault();
-    const word = target.dataset.word;
-    if (word) {
-      const rect = target.getBoundingClientRect();
-      showTranslation(word, rect);
+  try {
+    const target = event.target;
+    
+    // 安全检查：确保target存在且有效
+    if (!target || !target.classList || !target.dataset) {
+      return;
     }
+    
+    if (target.classList.contains('lv-highlighted-word')) {
+      event.preventDefault();
+      const word = target.dataset.word;
+      if (word) {
+        const rect = target.getBoundingClientRect();
+        showTranslation(word, rect);
+      }
+    }
+  } catch (error) {
+    console.error('handleWordClick错误:', error);
   }
 }
 
 // 显示单词提示框
 async function showWordTooltip(word, element) {
   try {
+    // 安全检查：确保element存在且有效
+    if (!element || !element.textContent || !element.getBoundingClientRect) {
+      console.warn('showWordTooltip: 无效的element参数');
+      return;
+    }
+    
     // word 是词根，element.textContent 是实际显示的单词
     const actualWord = element.textContent.toLowerCase();
     const rootWord = word.toLowerCase();
@@ -1559,12 +1680,25 @@ async function showWordTooltip(word, element) {
       translationData = await translateWord(actualWord);
     }
     
+    // 再次检查element是否仍然有效（可能在异步操作期间被移除）
+    if (!element.isConnected || !document.contains(element)) {
+      console.warn('showWordTooltip: element已从DOM中移除');
+      return;
+    }
+    
     const rect = element.getBoundingClientRect();
     
     // 收藏状态基于词根判断
     const isSaved = savedWords.has(rootWord);
     const tooltipContent = createTranslationContent(actualWord, translationData, isSaved);
     const tooltip = createTooltip(tooltipContent, rect);
+    
+    // 安全检查：确保tooltip创建成功
+    if (!tooltip) {
+      console.warn('showWordTooltip: tooltip创建失败');
+      return;
+    }
+    
     tooltip.innerHTML = tooltipContent;
     
     // 添加收藏按钮事件
@@ -1606,7 +1740,7 @@ async function showWordTooltip(word, element) {
     // 鼠标离开时隐藏提示框
     element.addEventListener('mouseleave', () => {
       setTimeout(() => {
-        if (tooltipElement && !tooltipElement.matches(':hover')) {
+        if (tooltipElement && !tooltipElement.hasAttribute('data-hover')) {
           removeTooltip();
         }
       }, 200);

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试 - 收藏单词详情查看功能</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .test-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .feature-description {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .feature-description h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        
+        .feature-description p {
+            margin: 0;
+            color: #424242;
+            line-height: 1.5;
+        }
+        
+        .test-steps {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-steps h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+        }
+        
+        .test-steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .test-steps li {
+            margin-bottom: 8px;
+            color: #6c757d;
+        }
+        
+        .demo-popup {
+            width: 350px;
+            min-height: 400px;
+            margin: 20px auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .demo-header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .demo-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .demo-header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .demo-content {
+            background: white;
+            padding: 20px;
+            min-height: 300px;
+        }
+        
+        .demo-word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .demo-word-item:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+        
+        .demo-word-text {
+            font-weight: 500;
+            color: #2d3748;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        
+        .demo-word-text:hover {
+            color: #667eea;
+        }
+        
+        .demo-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .demo-delete-btn:hover {
+            background: #c82333;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .instructions h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        
+        .instructions p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+        
+        .version-info {
+            text-align: center;
+            padding: 10px;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            color: #155724;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">🔍 收藏单词详情查看功能测试</h1>
+        
+        <div class="version-info">
+            <strong>v1.7.2 新功能：</strong>点击收藏的单词可以查看完整的详细信息（包括词性、例句、同义词）
+        </div>
+        
+        <div class="feature-description">
+            <h3>✨ 功能说明</h3>
+            <p>现在在扩展的弹出页面中，用户可以点击已收藏的单词来查看该单词的详细信息，包括翻译、音标、发音功能、词性分类、英文定义、例句和同义词等完整信息。这个功能完全复用了网页划词时显示的翻译UI，提供一致的用户体验。</p>
+        </div>
+        
+        <div class="test-steps">
+            <h3>📋 测试步骤</h3>
+            <ol>
+                <li>首先在网页上选中一些英文单词并收藏它们</li>
+                <li>点击浏览器工具栏中的扩展图标，打开弹出页面</li>
+                <li>在"收藏的单词"列表中，点击任意一个单词</li>
+                <li>应该会弹出一个详细信息窗口，显示：
+                    <ul>
+                        <li>单词的翻译信息</li>
+                        <li>音标显示</li>
+                        <li>美式和英式发音按钮</li>
+                        <li>词性分类（名词、动词、形容词等）</li>
+                        <li>英文定义和中文翻译</li>
+                        <li>使用例句</li>
+                        <li>相关同义词</li>
+                        <li>取消收藏按钮</li>
+                    </ul>
+                </li>
+                <li>测试发音按钮是否正常工作</li>
+                <li>测试取消收藏功能是否正常</li>
+                <li>点击弹窗外部区域应该关闭弹窗</li>
+            </ol>
+        </div>
+        
+        <div class="demo-popup">
+            <div class="demo-header">
+                <h1>📚 多多记单词</h1>
+                <p>英文单词学习助手</p>
+            </div>
+            
+            <div class="demo-content">
+                <div style="font-size: 16px; font-weight: 600; color: #2d3748; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    <span>❤️</span>
+                    <span>收藏的单词</span>
+                </div>
+                
+                <div class="demo-word-item">
+                    <span class="demo-word-text">beautiful</span>
+                    <button class="demo-delete-btn">删除</button>
+                </div>
+                
+                <div class="demo-word-item">
+                    <span class="demo-word-text">wonderful</span>
+                    <button class="demo-delete-btn">删除</button>
+                </div>
+                
+                <div class="demo-word-item">
+                    <span class="demo-word-text">amazing</span>
+                    <button class="demo-delete-btn">删除</button>
+                </div>
+                
+                <div class="demo-word-item">
+                    <span class="demo-word-text">pronunciation</span>
+                    <button class="demo-delete-btn">删除</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h4>💡 使用提示</h4>
+            <p>点击上面演示中的单词文本（如 "beautiful"），在实际扩展中会弹出详细的翻译信息窗口。这个功能让用户可以随时回顾已收藏单词的详细信息，无需重新查找。</p>
+        </div>
+        
+        <div class="test-steps">
+            <h3>🔧 技术实现</h3>
+            <ol>
+                <li><strong>UI复用：</strong>完全复用了content.js中的翻译UI组件</li>
+                <li><strong>数据获取：</strong>优先从本地存储的翻译数据中获取，如果没有则调用完整的翻译API</li>
+                <li><strong>翻译API：</strong>集成MyMemory翻译API和Dictionary API获取完整信息</li>
+                <li><strong>词典功能：</strong>获取词性、英文定义、例句、同义词等详细信息</li>
+                <li><strong>交互体验：</strong>支持发音播放、收藏状态切换等完整功能</li>
+                <li><strong>样式一致：</strong>与网页划词翻译保持相同的视觉风格</li>
+                <li><strong>响应式设计：</strong>适配不同屏幕尺寸</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html> 
