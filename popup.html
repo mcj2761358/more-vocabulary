@@ -671,26 +671,22 @@
       <input type="file" id="fileInput" class="file-input" accept=".json">
     </div>
 
-    <div class="words-section">
+    <section class="words-section">
       <div class="section-title">
-        <span>✅</span>
+        <span>🎓</span>
         <span>已认识的单词</span>
       </div>
-      
-      <div id="knownWordsList" class="word-list">
-        <div class="empty-state">
-          <div class="empty-icon">🎉</div>
-          <p>还没有认识的单词</p>
-          <p>在收藏列表中点击"认识"按钮来标记已掌握的单词！</p>
-        </div>
-      </div>
-
-      <div class="action-buttons">
-        <button id="clearKnownBtn" class="action-btn clear-all-btn" disabled>
-          清空已认识
+      <div class="known-words-summary">
+        <button id="openKnownWordsBtn" class="open-known-words-btn">
+          <span class="known-words-icon">🎓</span>
+          <div class="known-words-info">
+            <div class="known-words-title">查看已认识单词</div>
+            <div class="known-words-count">共 <span id="knownWordsCount">0</span> 个单词</div>
+          </div>
+          <span class="arrow-icon">→</span>
         </button>
       </div>
-    </div>
+    </section>
 
     <div class="backup-section">
       <div class="backup-title">

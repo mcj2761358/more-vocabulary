@@ -110,7 +110,7 @@ async function loadHighlightColor() {
 function updateUI() {
   updateStats();
   updateWordsList();
-  updateKnownWordsList();
+  updateKnownWordsCount();
   updateActionButtons();
 }
 
@@ -147,6 +147,14 @@ function updateStats() {
   }
   
   todayWordsElement.textContent = todayCount.toString();
+}
+
+// 更新已认识单词数量显示
+function updateKnownWordsCount() {
+  const knownWordsCountElement = document.getElementById('knownWordsCount');
+  if (knownWordsCountElement) {
+    knownWordsCountElement.textContent = knownWords.length;
+  }
 }
 
 // 更新单词列表
@@ -237,81 +245,13 @@ function updateWordsList() {
   });
 }
 
-// 更新已认识单词列表
-function updateKnownWordsList() {
-  const knownWordsListElement = document.getElementById('knownWordsList');
-  
-  if (knownWords.length === 0) {
-    knownWordsListElement.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🎉</div>
-        <p>还没有认识的单词</p>
-        <p>在收藏列表中点击"认识"按钮来标记已掌握的单词！</p>
-      </div>
-    `;
-    return;
-  }
-  
-  const knownWordsHTML = knownWords.map(word => `
-    <div class="word-item" data-word="${word}">
-      <span class="word-text" data-word="${word}">${word}</span>
-      <button class="delete-btn" data-word="${word}">删除</button>
-    </div>
-  `).join('');
-  
-  knownWordsListElement.innerHTML = knownWordsHTML;
-  
-  // 为单词文本添加鼠标悬停事件监听器
-  const knownWordTexts = knownWordsListElement.querySelectorAll('.word-text');
-  knownWordTexts.forEach(wordElement => {
-    // 鼠标进入时显示详情
-    wordElement.addEventListener('mouseenter', (e) => {
-      const word = wordElement.getAttribute('data-word');
-      if (word) {
-        showWordDetails(word, wordElement);
-      }
-    });
-    
-    // 鼠标离开时延迟隐藏（给用户时间移动到提示框上）
-    wordElement.addEventListener('mouseleave', (e) => {
-      setTimeout(() => {
-        // 检查鼠标是否在提示框上
-        if (window.currentWordTooltip && !window.currentWordTooltip.hasAttribute('data-hover')) {
-          removeWordTooltip();
-        }
-      }, 200); // 200ms延迟，给用户时间移动到提示框
-    });
-  });
-  
-  // 为删除按钮添加事件监听器
-  const knownDeleteButtons = knownWordsListElement.querySelectorAll('.delete-btn');
-  console.log('找到已认识单词的删除按钮数量:', knownDeleteButtons.length);
-  
-  knownDeleteButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-      console.log('已认识单词的删除按钮被点击');
-      e.preventDefault();
-      e.stopPropagation();
-      const word = button.getAttribute('data-word');
-      console.log('要删除的已认识单词:', word);
-      if (word) {
-        deleteKnownWord(word);
-      } else {
-        console.error('未找到要删除的已认识单词');
-      }
-    });
-  });
-}
-
 // 更新操作按钮状态
 function updateActionButtons() {
   const clearAllBtn = document.getElementById('clearAllBtn');
   const exportBtn = document.getElementById('exportBtn');
-  const clearKnownBtn = document.getElementById('clearKnownBtn');
   
   clearAllBtn.disabled = savedWords.length === 0;
   exportBtn.disabled = savedWords.length === 0;
-  clearKnownBtn.disabled = knownWords.length === 0;
 }
 
 // 设置事件监听器
@@ -320,13 +260,17 @@ function setupEventListeners() {
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
   const fileInput = document.getElementById('fileInput');
-  const clearKnownBtn = document.getElementById('clearKnownBtn');
+  const openKnownWordsBtn = document.getElementById('openKnownWordsBtn');
   
   clearAllBtn.addEventListener('click', clearAllWords);
   exportBtn.addEventListener('click', exportData);
   importBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', handleFileImport);
-  clearKnownBtn.addEventListener('click', clearAllKnownWords);
+  
+  // 打开已认识单词管理页面
+  if (openKnownWordsBtn) {
+    openKnownWordsBtn.addEventListener('click', openKnownWordsManager);
+  }
   
   // 监听存储变化
   chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -533,65 +477,20 @@ async function clearAllWords() {
   }
 }
 
-// 删除已认识的单词
-async function deleteKnownWord(word) {
-  console.log('deleteKnownWord函数被调用，单词:', word);
-  
+// 打开已认识单词管理页面
+function openKnownWordsManager() {
   try {
-    const wordLower = word.toLowerCase();
-    console.log('准备删除已认识的单词:', wordLower);
-    
-    // 从已认识列表中移除单词
-    const updatedKnownWords = knownWords.filter(w => w.toLowerCase() !== wordLower);
-    console.log('更新后的已认识单词列表:', updatedKnownWords);
-    
-    // 从详细数据Map中移除
-    knownWordsData.delete(wordLower);
-    
-    // 准备要保存的数据
-    const dataToSave = {
-      [STORAGE_KEYS.KNOWN_WORDS]: updatedKnownWords,
-      [STORAGE_KEYS.KNOWN_WORDS_DATA]: Array.from(knownWordsData.entries())
-    };
-    
-    console.log('准备保存的数据:', dataToSave);
-    
-    // 保存到存储
-    await chrome.storage.local.set(dataToSave);
-    
-    // 更新本地状态
-    knownWords = updatedKnownWords;
-    
-    updateUI();
-    console.log('删除已认识单词成功:', word);
-    showMessage(`已删除已认识单词: ${word}`, 'success');
+    // 创建新窗口显示已认识单词管理页面
+    chrome.windows.create({
+      url: chrome.runtime.getURL('known-words.html'),
+      type: 'popup',
+      width: 650,
+      height: 750,
+      focused: true
+    });
   } catch (error) {
-    console.error('删除已认识单词失败:', error);
-    showMessage('删除已认识单词失败，请重试', 'error');
-  }
-}
-
-// 清空所有已认识的单词
-async function clearAllKnownWords() {
-  if (confirm('确定要清空所有已认识的单词吗？此操作不可撤销。')) {
-    try {
-      // 清空已认识单词数据
-      const dataToSave = {
-        [STORAGE_KEYS.KNOWN_WORDS]: [],
-        [STORAGE_KEYS.KNOWN_WORDS_DATA]: []
-      };
-      
-      await chrome.storage.local.set(dataToSave);
-      
-      knownWords = [];
-      knownWordsData = new Map();
-      updateUI();
-      console.log('清空所有已认识单词成功');
-      showMessage('已清空所有已认识的单词', 'success');
-    } catch (error) {
-      console.error('清空已认识单词失败:', error);
-      showMessage('清空已认识单词失败，请重试', 'error');
-    }
+    console.error('打开已认识单词管理页面失败:', error);
+    showMessage('打开管理页面失败，请重试', 'error');
   }
 }
 
@@ -615,7 +514,7 @@ async function exportData() {
       knownWordsData: allData[STORAGE_KEYS.KNOWN_WORDS_DATA] || [], // 已认识单词详细数据
       translationCache: allData[STORAGE_KEYS.TRANSLATION_CACHE] || [],
       highlightColor: allData[STORAGE_KEYS.HIGHLIGHT_COLOR] || '#ffeb3b',
-      version: '1.8.0',
+      version: '1.9.0',
       exportTime: new Date().toISOString(),
       count: savedWords.length,
       knownCount: knownWords.length,

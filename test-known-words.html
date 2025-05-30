@@ -3,337 +3,212 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>测试 - 已认识单词功能</title>
+  <title>已认识单词功能测试 - 多多记单词 v1.9.0</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       line-height: 1.6;
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
       padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+      background: #f5f5f5;
     }
 
     .container {
       background: white;
-      border-radius: 12px;
       padding: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
 
-    .test-title {
+    h1 {
       color: #2d3748;
       text-align: center;
       margin-bottom: 30px;
-      font-size: 28px;
-      font-weight: 700;
     }
 
     .feature-intro {
-      background: #f7fafc;
-      border-left: 4px solid #4299e1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
       padding: 20px;
+      border-radius: 8px;
       margin-bottom: 30px;
-      border-radius: 0 8px 8px 0;
-    }
-
-    .feature-intro h2 {
-      color: #2d3748;
-      margin-top: 0;
-      font-size: 20px;
-    }
-
-    .feature-intro p {
-      color: #4a5568;
-      margin-bottom: 10px;
     }
 
     .test-section {
-      margin-bottom: 40px;
-      padding: 25px;
+      margin-bottom: 30px;
+      padding: 20px;
       border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      background: #f8f9fa;
+      border-radius: 8px;
     }
 
     .test-section h3 {
-      color: #2d3748;
-      margin-top: 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .test-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 15px 0;
-      border: 1px solid #e2e8f0;
-    }
-
-    .test-steps {
-      background: #edf2f7;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 15px 0;
-    }
-
-    .test-steps ol {
-      margin: 0;
-      padding-left: 20px;
-    }
-
-    .test-steps li {
-      margin-bottom: 8px;
       color: #4a5568;
-    }
-
-    .highlight {
-      background: #fed7d7;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-
-    .success {
-      color: #38a169;
-      font-weight: 600;
-    }
-
-    .error {
-      color: #e53e3e;
-      font-weight: 600;
-    }
-
-    .info {
-      color: #3182ce;
-      font-weight: 600;
-    }
-
-    .demo-section {
-      background: #f0fff4;
-      border: 2px solid #68d391;
-      border-radius: 12px;
-      padding: 25px;
-      margin: 20px 0;
-    }
-
-    .demo-section h4 {
-      color: #22543d;
       margin-top: 0;
-      font-size: 16px;
-      font-weight: 600;
     }
 
-    .word-examples {
+    .test-words {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin: 15px 0;
     }
 
-    .word-example {
-      background: white;
+    .test-word {
+      background: #f7fafc;
       padding: 8px 12px;
       border-radius: 6px;
-      border: 1px solid #c6f6d5;
+      border: 1px solid #e2e8f0;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .word-example:hover {
-      background: #f0fff4;
-      transform: translateY(-1px);
+    .test-word:hover {
+      background: #edf2f7;
+      border-color: #cbd5e0;
     }
 
-    .feature-list {
-      list-style: none;
-      padding: 0;
-    }
-
-    .feature-list li {
-      padding: 8px 0;
-      border-bottom: 1px solid #e2e8f0;
-      color: #4a5568;
-    }
-
-    .feature-list li:last-child {
-      border-bottom: none;
-    }
-
-    .feature-list li::before {
-      content: "✅ ";
-      color: #38a169;
-      font-weight: bold;
-    }
-
-    .status-indicator {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      margin-right: 8px;
-    }
-
-    .status-success {
-      background: #38a169;
-    }
-
-    .status-error {
-      background: #e53e3e;
-    }
-
-    .status-pending {
-      background: #ed8936;
-    }
-
-    .alert {
-      padding: 15px;
+    .steps {
+      background: #f8f9fa;
+      padding: 20px;
       border-radius: 8px;
-      margin: 15px 0;
-      border-left: 4px solid;
+      margin: 20px 0;
     }
 
-    .alert-info {
-      background: #ebf8ff;
-      border-color: #3182ce;
-      color: #2c5282;
+    .steps ol {
+      margin: 0;
+      padding-left: 20px;
     }
 
-    .alert-warning {
-      background: #fffbeb;
-      border-color: #ed8936;
-      color: #c05621;
+    .steps li {
+      margin-bottom: 8px;
     }
 
-    .alert-success {
-      background: #f0fff4;
-      border-color: #38a169;
-      color: #22543d;
+    .checklist {
+      background: #e6fffa;
+      border-left: 4px solid #38b2ac;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .checklist h4 {
+      color: #2c7a7b;
+      margin-top: 0;
+    }
+
+    .checklist ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .note {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+
+    .note strong {
+      color: #856404;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="test-title">🎯 已认识单词功能测试</h1>
-
+    <h1>🎓 已认识单词管理功能测试</h1>
+    
     <div class="feature-intro">
-      <h2>🆕 新功能介绍</h2>
-      <p><strong>v1.8.0 新功能：</strong>在收藏单词列表中添加"认识"按钮，点击后将单词从收藏列表移除并添加到"已认识"列表中。</p>
-      <p>这个功能帮助用户管理学习进度，将已经掌握的单词与正在学习的单词分开管理，提供更好的学习体验。</p>
-    </div>
-
-    <div class="alert alert-info">
-      <strong>测试说明：</strong>请按照以下步骤测试已认识单词功能。确保扩展已正确加载并且功能正常工作。
+      <h3>✨ 新功能介绍</h3>
+      <p>v1.9.0 版本新增了独立的已认识单词管理页面，支持：</p>
+      <ul>
+        <li>🔍 <strong>智能搜索</strong> - 快速查找已认识的单词</li>
+        <li>📄 <strong>分页显示</strong> - 可设置每页显示 10/20/50/100 个单词</li>
+        <li>📊 <strong>详细统计</strong> - 显示总数量和当前页信息</li>
+        <li>🗑️ <strong>便捷管理</strong> - 单个删除或批量清空</li>
+        <li>💡 <strong>详情查看</strong> - 点击单词卡片查看详细信息</li>
+      </ul>
     </div>
 
     <div class="test-section">
-      <h3>📋 测试步骤</h3>
-      <div class="test-steps">
+      <h3>📝 测试步骤</h3>
+      <div class="steps">
         <ol>
-          <li>首先在下方测试内容中选中一些英文单词并收藏它们</li>
-          <li>打开扩展的弹出页面，查看"收藏的单词"列表</li>
-          <li>点击任意单词旁边的<span class="highlight">"认识"</span>按钮</li>
-          <li>观察该单词是否从收藏列表中消失，并出现在"已认识的单词"列表中</li>
-          <li>检查统计数据是否正确更新（已收藏单词数量减少，已认识单词数量增加）</li>
-          <li>测试已认识单词的删除功能</li>
-          <li>测试"清空已认识"按钮功能</li>
-          <li>测试数据导出/导入是否包含已认识单词数据</li>
+          <li>选中下面的英文单词，等待翻译弹窗出现</li>
+          <li>点击弹窗中的"收藏"按钮，将单词添加到收藏列表</li>
+          <li>打开扩展弹窗，在收藏列表中找到刚才的单词</li>
+          <li>点击单词旁边的绿色"认识"按钮</li>
+          <li>点击"查看已认识单词"按钮，打开管理页面</li>
+          <li>在管理页面中测试搜索、分页、删除等功能</li>
         </ol>
       </div>
     </div>
 
     <div class="test-section">
-      <h3>🎯 预期结果</h3>
-      <ul class="feature-list">
-        <li>点击"认识"按钮后，单词从收藏列表移除</li>
-        <li>单词出现在"已认识的单词"列表中</li>
-        <li>统计数据正确更新</li>
-        <li>已认识单词支持鼠标悬停查看详情</li>
-        <li>已认识单词支持删除操作</li>
-        <li>支持清空所有已认识单词</li>
-        <li>数据导出包含已认识单词信息</li>
-        <li>数据导入正确恢复已认识单词</li>
-      </ul>
-    </div>
-
-    <div class="demo-section">
-      <h4>📝 测试内容 - 选中下面的单词进行收藏测试</h4>
-      <div class="test-content">
-        <p>Here are some common English words for testing the known words feature:</p>
-        
-        <div class="word-examples">
-          <span class="word-example">beautiful</span>
-          <span class="word-example">important</span>
-          <span class="word-example">wonderful</span>
-          <span class="word-example">excellent</span>
-          <span class="word-example">amazing</span>
-          <span class="word-example">fantastic</span>
-          <span class="word-example">incredible</span>
-          <span class="word-example">outstanding</span>
-        </div>
-
-        <p>You can also test with these sentences:</p>
-        <p>The <strong>development</strong> of artificial intelligence has been <strong>remarkable</strong> in recent years. Many <strong>researchers</strong> are working on <strong>innovative</strong> solutions to complex problems.</p>
-        
-        <p>Learning new <strong>vocabulary</strong> is essential for language <strong>acquisition</strong>. Students should practice <strong>regularly</strong> to improve their <strong>comprehension</strong> skills.</p>
+      <h3>🔤 测试单词</h3>
+      <p>请选中下面的单词进行测试：</p>
+      <div class="test-words">
+        <span class="test-word">hello</span>
+        <span class="test-word">world</span>
+        <span class="test-word">computer</span>
+        <span class="test-word">programming</span>
+        <span class="test-word">development</span>
+        <span class="test-word">technology</span>
+        <span class="test-word">innovation</span>
+        <span class="test-word">artificial</span>
+        <span class="test-word">intelligence</span>
+        <span class="test-word">machine</span>
+        <span class="test-word">learning</span>
+        <span class="test-word">algorithm</span>
+        <span class="test-word">database</span>
+        <span class="test-word">framework</span>
+        <span class="test-word">application</span>
       </div>
     </div>
 
     <div class="test-section">
-      <h3>🔍 功能验证清单</h3>
-      <div class="test-steps">
-        <p><span class="status-indicator status-pending"></span> 收藏单词功能正常工作</p>
-        <p><span class="status-indicator status-pending"></span> "认识"按钮显示正确</p>
-        <p><span class="status-indicator status-pending"></span> 点击"认识"按钮后单词移动到已认识列表</p>
-        <p><span class="status-indicator status-pending"></span> 统计数据正确更新</p>
-        <p><span class="status-indicator status-pending"></span> 已认识单词列表显示正常</p>
-        <p><span class="status-indicator status-pending"></span> 已认识单词支持悬停查看详情</p>
-        <p><span class="status-indicator status-pending"></span> 已认识单词支持删除</p>
-        <p><span class="status-indicator status-pending"></span> "清空已认识"按钮工作正常</p>
-        <p><span class="status-indicator status-pending"></span> 数据导出包含已认识单词</p>
-        <p><span class="status-indicator status-pending"></span> 数据导入恢复已认识单词</p>
-      </div>
+      <h3>📖 测试句子</h3>
+      <p>也可以选中句子中的单词进行测试：</p>
+      <p>The <strong>development</strong> of <strong>artificial intelligence</strong> has revolutionized the way we approach <strong>complex</strong> problems in <strong>computer science</strong>. Modern <strong>algorithms</strong> can process vast amounts of data and provide <strong>intelligent</strong> solutions for various <strong>applications</strong>.</p>
     </div>
 
-    <div class="alert alert-success">
-      <strong>测试完成后：</strong>如果所有功能都正常工作，说明已认识单词功能已成功实现。用户现在可以更好地管理自己的学习进度，将已掌握的单词与正在学习的单词分开管理。
+    <div class="checklist">
+      <h4>✅ 功能验证清单</h4>
+      <ul>
+        <li>□ 单词翻译和收藏功能正常</li>
+        <li>□ "认识"按钮能将单词从收藏移至已认识</li>
+        <li>□ 已认识单词数量统计正确</li>
+        <li>□ 管理页面能正常打开</li>
+        <li>□ 搜索功能工作正常</li>
+        <li>□ 分页功能工作正常</li>
+        <li>□ 每页显示数量设置有效</li>
+        <li>□ 单词详情弹窗显示正确</li>
+        <li>□ 删除单个单词功能正常</li>
+        <li>□ 清空全部功能正常</li>
+        <li>□ 返回按钮功能正常</li>
+      </ul>
     </div>
 
-    <div class="alert alert-warning">
+    <div class="note">
       <strong>注意事项：</strong>
       <ul>
-        <li>确保扩展已重新加载以应用最新更改</li>
-        <li>测试时注意观察控制台是否有错误信息</li>
-        <li>验证数据持久化是否正常工作</li>
-        <li>测试在不同页面间的数据同步</li>
+        <li>确保扩展已正确安装并启用</li>
+        <li>测试时请逐步操作，观察每个功能的响应</li>
+        <li>如果遇到问题，请检查浏览器控制台的错误信息</li>
+        <li>管理页面支持键盘操作（ESC 关闭弹窗等）</li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h3>🎯 预期结果</h3>
+      <ul>
+        <li>单词能够顺利从收藏列表转移到已认识列表</li>
+        <li>管理页面界面美观，功能完整</li>
+        <li>搜索响应迅速，结果准确</li>
+        <li>分页切换流畅，数据显示正确</li>
+        <li>所有操作都有适当的用户反馈</li>
       </ul>
     </div>
   </div>
-
-  <script>
-    // 添加一些交互效果
-    document.querySelectorAll('.word-example').forEach(word => {
-      word.addEventListener('click', function() {
-        this.style.background = '#c6f6d5';
-        setTimeout(() => {
-          this.style.background = 'white';
-        }, 1000);
-      });
-    });
-
-    // 模拟测试状态更新
-    function updateTestStatus(index, status) {
-      const indicators = document.querySelectorAll('.status-indicator');
-      if (indicators[index]) {
-        indicators[index].className = `status-indicator status-${status}`;
-      }
-    }
-
-    // 提供一些测试辅助功能
-    console.log('已认识单词功能测试页面已加载');
-    console.log('请按照页面说明进行功能测试');
-  </script>
 </body>
 </html> 

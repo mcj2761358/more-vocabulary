@@ -1,0 +1,59 @@
+/* 已认识单词摘要按钮 */
+.known-words-summary {
+  margin-top: 15px;
+}
+
+.open-known-words-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.open-known-words-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.open-known-words-btn:active {
+  transform: translateY(0);
+}
+
+.known-words-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.known-words-info {
+  flex: 1;
+  text-align: left;
+}
+
+.known-words-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.known-words-count {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.arrow-icon {
+  font-size: 18px;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+.open-known-words-btn:hover .arrow-icon {
+  transform: translateX(4px);
+} 
