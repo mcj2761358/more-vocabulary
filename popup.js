@@ -446,7 +446,7 @@ async function exportData() {
       knownWordsData: allData[STORAGE_KEYS.KNOWN_WORDS_DATA] || [], // 已认识单词详细数据
       translationCache: allData[STORAGE_KEYS.TRANSLATION_CACHE] || [],
       highlightColor: allData[STORAGE_KEYS.HIGHLIGHT_COLOR] || '#ffeb3b',
-      version: '1.10.0',
+      version: '1.11.0',
       exportTime: new Date().toISOString(),
       count: savedWords.length,
       knownCount: knownWords.length,

@@ -437,7 +437,7 @@ class SavedWordsManager {
           knownWordsData: allData.knownWordsData || [],
           translationCache: allData.translationCache || [],
           highlightColor: allData.highlightColor || '#ffeb3b',
-          version: '1.10.0',
+          version: '1.11.0',
           exportTime: new Date().toISOString(),
           count: this.savedWords.length,
           knownCount: (allData.knownWords || []).length,
@@ -521,12 +521,55 @@ class SavedWordsManager {
       }
       
       // 添加发音按钮事件监听器
-      const pronunciationBtn = content.querySelector('.pronunciation-btn');
-      if (pronunciationBtn) {
-        pronunciationBtn.addEventListener('click', () => {
-          this.playPronunciation(word);
+      const pronunciationButtons = content.querySelectorAll('.pronunciation-btn');
+      pronunciationButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const word = btn.dataset.word;
+          const accent = btn.dataset.accent;
+          
+          // 添加点击效果
+          btn.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            btn.style.transform = 'scale(1)';
+          }, 150);
+          
+          if (accent) {
+            this.playWordPronunciation(word, accent);
+          } else {
+            this.playPronunciation(word);
+          }
         });
-      }
+        
+        // 添加悬停效果
+        btn.addEventListener('mouseenter', () => {
+          if (btn.classList.contains('pronunciation-us')) {
+            btn.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#dc3545';
+            btn.style.transform = 'translateY(-1px)';
+            btn.style.boxShadow = '0 3px 8px rgba(220, 53, 69, 0.3)';
+          } else if (btn.classList.contains('pronunciation-uk')) {
+            btn.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#007bff';
+            btn.style.transform = 'translateY(-1px)';
+            btn.style.boxShadow = '0 3px 8px rgba(0, 123, 255, 0.3)';
+          }
+        });
+        
+        btn.addEventListener('mouseleave', () => {
+          btn.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
+          btn.style.color = '#495057';
+          btn.style.transform = 'translateY(0)';
+          btn.style.boxShadow = 'none';
+          if (btn.classList.contains('pronunciation-us')) {
+            btn.style.borderColor = '#dee2e6';
+          } else if (btn.classList.contains('pronunciation-uk')) {
+            btn.style.borderColor = '#dee2e6';
+          }
+        });
+      });
       
       modal.style.display = 'flex';
     }
@@ -538,11 +581,37 @@ class SavedWordsManager {
       // 音标和发音区域（放在顶部）
       const phonetic = translationData.translations.find(t => t.type === 'phonetic');
       if (phonetic) {
-        content += `<div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px;">`;
-        content += `<span style="font-size: 18px; color: #495057; font-family: 'Courier New', monospace; font-weight: 500;">${phonetic.text}</span>`;
-        content += `<button class="pronunciation-btn" data-word="${word}" title="点击发音" style="background: #007bff; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">`;
-        content += `<span class="pronunciation-icon" style="font-size: 14px;">🔊</span>`;
+        content += `<div style="display: flex; justify-content: center; margin-bottom: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px;">`;
+        
+        // 发音按钮区域 - 放在一行
+        content += `<div class="pronunciation-section" style="display: flex; align-items: center; gap: 24px;">`;
+        content += `<button class="pronunciation-btn pronunciation-us" data-word="${word}" data-accent="us" title="美式发音" style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; border-left: 4px solid #dc3545; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #495057; transition: all 0.2s ease; min-width: 120px; justify-content: center; white-space: nowrap;">`;
+        content += `<span style="font-size: 18px;">🇺🇸</span>`;
+        content += `<span class="pronunciation-icon" style="font-size: 16px; opacity: 0.8;">🔊</span>`;
+        content += `<span class="pronunciation-label" style="font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">美式发音</span>`;
         content += `</button>`;
+        content += `<button class="pronunciation-btn pronunciation-uk" data-word="${word}" data-accent="uk" title="英式发音" style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; border-left: 4px solid #007bff; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #495057; transition: all 0.2s ease; min-width: 120px; justify-content: center; white-space: nowrap;">`;
+        content += `<span style="font-size: 18px;">🇬🇧</span>`;
+        content += `<span class="pronunciation-icon" style="font-size: 16px; opacity: 0.8;">🔊</span>`;
+        content += `<span class="pronunciation-label" style="font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">英式发音</span>`;
+        content += `</button>`;
+        content += `</div>`;
+        content += `</div>`;
+      } else {
+        // 即使没有音标数据，也显示发音按钮
+        content += `<div style="display: flex; justify-content: center; margin-bottom: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px;">`;
+        content += `<div class="pronunciation-section" style="display: flex; align-items: center; gap: 24px;">`;
+        content += `<button class="pronunciation-btn pronunciation-us" data-word="${word}" data-accent="us" title="美式发音" style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; border-left: 4px solid #dc3545; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #495057; transition: all 0.2s ease; min-width: 120px; justify-content: center; white-space: nowrap;">`;
+        content += `<span style="font-size: 18px;">🇺🇸</span>`;
+        content += `<span class="pronunciation-icon" style="font-size: 16px; opacity: 0.8;">🔊</span>`;
+        content += `<span class="pronunciation-label" style="font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">美式发音</span>`;
+        content += `</button>`;
+        content += `<button class="pronunciation-btn pronunciation-uk" data-word="${word}" data-accent="uk" title="英式发音" style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; border-left: 4px solid #007bff; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #495057; transition: all 0.2s ease; min-width: 120px; justify-content: center; white-space: nowrap;">`;
+        content += `<span style="font-size: 18px;">🇬🇧</span>`;
+        content += `<span class="pronunciation-icon" style="font-size: 16px; opacity: 0.8;">🔊</span>`;
+        content += `<span class="pronunciation-label" style="font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">英式发音</span>`;
+        content += `</button>`;
+        content += `</div>`;
         content += `</div>`;
       }
       
@@ -653,6 +722,160 @@ class SavedWordsManager {
         }
       } catch (error) {
         console.error('播放发音失败:', error);
+      }
+    }
+  
+    // 使用TTS服务播放单词发音（支持英式、美式）
+    async playWordPronunciation(word, accent = 'us') {
+      console.log(`播放${accent === 'us' ? '美式' : '英式'}发音:`, word);
+      
+      try {
+        // 使用浏览器内置TTS (最可靠)
+        if ('speechSynthesis' in window) {
+          speechSynthesis.cancel();
+          
+          const utterance = new SpeechSynthesisUtterance(word);
+          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+          utterance.volume = 1;
+          
+          // 等待语音列表加载完成
+          const loadVoices = () => {
+            return new Promise((resolve) => {
+              let voices = speechSynthesis.getVoices();
+              if (voices.length > 0) {
+                resolve(voices);
+              } else {
+                speechSynthesis.addEventListener('voiceschanged', () => {
+                  voices = speechSynthesis.getVoices();
+                  resolve(voices);
+                }, { once: true });
+              }
+            });
+          };
+          
+          const voices = await loadVoices();
+          console.log('可用语音:', voices.map(v => `${v.name} (${v.lang})`));
+          
+          // 尝试选择合适的语音
+          let targetVoice = null;
+          
+          // 优先选择指定地区的语音
+          if (accent === 'us') {
+            targetVoice = voices.find(voice => 
+              voice.lang.startsWith('en-US') && voice.name.toLowerCase().includes('us')
+            ) || voices.find(voice => voice.lang.startsWith('en-US'));
+          } else {
+            targetVoice = voices.find(voice => 
+              voice.lang.startsWith('en-GB') && voice.name.toLowerCase().includes('uk')
+            ) || voices.find(voice => voice.lang.startsWith('en-GB'));
+          }
+          
+          // 如果没找到指定地区的语音，使用任何英语语音
+          if (!targetVoice) {
+            targetVoice = voices.find(voice => voice.lang.startsWith('en'));
+          }
+          
+          if (targetVoice) {
+            utterance.voice = targetVoice;
+            console.log('使用语音:', targetVoice.name, targetVoice.lang);
+          } else {
+            console.log('未找到合适的语音，使用默认语音');
+          }
+          
+          utterance.onstart = () => {
+            console.log('TTS开始播放');
+          };
+          
+          utterance.onend = () => {
+            console.log('TTS播放完成');
+          };
+          
+          utterance.onerror = (error) => {
+            console.error('TTS播放错误:', error);
+            // 如果TTS失败，回退到在线音频
+            this.fallbackToOnlineAudio(word, accent);
+          };
+          
+          speechSynthesis.speak(utterance);
+          return;
+        }
+        
+        // 如果不支持TTS，直接使用在线音频
+        console.log('浏览器不支持TTS，使用在线音频');
+        this.fallbackToOnlineAudio(word, accent);
+        
+      } catch (error) {
+        console.error('播放发音失败:', error);
+        this.fallbackToOnlineAudio(word, accent);
+      }
+    }
+  
+    // 备用在线音频播放
+    fallbackToOnlineAudio(word, accent = 'us') {
+      try {
+        console.log(`使用在线音频播放${accent === 'us' ? '美式' : '英式'}发音:`, word);
+        
+        // 使用Google TTS
+        const lang = accent === 'us' ? 'en-US' : 'en-GB';
+        const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(word)}&tk=1`;
+        
+        const audio = new Audio(googleTTSUrl);
+        
+        audio.onloadstart = () => {
+          console.log('开始加载在线音频');
+        };
+        
+        audio.oncanplay = () => {
+          console.log('在线音频可以播放');
+        };
+        
+        audio.onplay = () => {
+          console.log('在线音频开始播放');
+        };
+        
+        audio.onended = () => {
+          console.log('在线音频播放完成');
+        };
+        
+        audio.onerror = (error) => {
+          console.error('在线音频播放失败:', error);
+          // 最后的备用方案：使用简单的TTS
+          this.simpleTTS(word, accent);
+        };
+        
+        audio.play().catch(error => {
+          console.error('在线音频播放失败:', error);
+          this.simpleTTS(word, accent);
+        });
+      } catch (error) {
+        console.error('备用音频播放失败:', error);
+        this.simpleTTS(word, accent);
+      }
+    }
+  
+    // 最简单的TTS备用方案
+    simpleTTS(word, accent = 'us') {
+      try {
+        console.log(`使用简单TTS播放发音:`, word);
+        if ('speechSynthesis' in window) {
+          speechSynthesis.cancel();
+          
+          const utterance = new SpeechSynthesisUtterance(word);
+          utterance.lang = accent === 'us' ? 'en' : 'en-GB';
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+          utterance.volume = 1;
+          
+          speechSynthesis.speak(utterance);
+        } else {
+          console.log('浏览器不支持语音合成');
+          this.showMessage('抱歉，您的浏览器不支持语音播放功能', 'error');
+        }
+      } catch (error) {
+        console.error('简单TTS播放失败:', error);
+        this.showMessage('语音播放失败，请检查网络连接', 'error');
       }
     }
   

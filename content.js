@@ -8,7 +8,7 @@ let currentHighlightColor = '#ffeb3b'; // 默认高亮颜色
 let translationCache = new Map(); // 翻译缓存
 
 // 数据版本控制
-const DATA_VERSION = '1.10.0';
+const DATA_VERSION = '1.11.0';
 const STORAGE_KEYS = {
   SAVED_WORDS: 'savedWords',
   SAVED_WORDS_DATA: 'savedWordsData', // 新增：存储单词详细信息
